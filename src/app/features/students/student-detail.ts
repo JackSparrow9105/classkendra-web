@@ -77,6 +77,13 @@ export class StudentDetail {
     return p.length === 10 ? `${p.slice(0, 5)} ${p.slice(5)}` : p;
   }
 
+  protected copyLink(link: string): void {
+    navigator.clipboard?.writeText(link).then(
+      () => this.toast.show('Payment link copied'),
+      () => this.toast.show(link),
+    );
+  }
+
   protected remind(): void {
     const d = this.data();
     if (!d) return;

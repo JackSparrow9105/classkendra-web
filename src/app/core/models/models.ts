@@ -40,7 +40,11 @@ export interface Centre {
   messagesUsed: number;
   messageLimit: number;
   setupComplete: boolean;
+  /** Language of WhatsApp messages to parents. */
+  messageLanguage: Lang;
 }
+
+export type Lang = 'en' | 'hi';
 
 export interface Batch {
   id: string;
@@ -173,6 +177,8 @@ export interface StudentFeeHistory {
   payments: PaymentView[];
   balance: number;
   paidThisSession: number;
+  /** Public payment page for this family (the same link the WhatsApp reminder carries). */
+  payLink: string;
 }
 
 export interface CollectionReport {
@@ -261,4 +267,64 @@ export interface StudentImportRow {
   name: string;
   parentPhone: string;
   batchName: string;
+}
+
+/* ---------- Promotion to the next class ---------- */
+
+export interface PromotionRequest {
+  /** Every class/batch being moved. toBatchId null = leaving (passed out or left). */
+  moves: { fromBatchId: string; toBatchId: string | null }[];
+  /** Students who stay in their current class (held back). */
+  keepBackStudentIds: string[];
+}
+
+export interface PromotionResult {
+  moved: number;
+  left: number;
+  keptBack: number;
+}
+
+/* ---------- WhatsApp message log ---------- */
+
+export type MessageType = 'FeeReminder' | 'AbsentAlert' | 'Receipt' | 'StaffInvite';
+export type MessageStatus = 'Queued' | 'Sent' | 'Delivered' | 'Read' | 'Failed';
+
+/** One row per WhatsApp message (the Notifications outbox). Status comes from the provider's delivery webhook. */
+export interface MessageLog {
+  id: string;
+  studentId: string | null;
+  recipientName: string;
+  phone: string;
+  type: MessageType;
+  text: string;
+  status: MessageStatus;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MessageSummary {
+  total: number;
+  byStatus: Record<MessageStatus, number>;
+}
+
+/* ---------- Public parent payment page ---------- */
+
+/** GET /public/pay/{token} — no login; the token identifies one student. */
+export interface ParentPayPage {
+  orgName: string;
+  orgCity: string;
+  studentName: string;
+  batchName: string;
+  dues: FeeDueView[];
+  total: number;
+  language: Lang;
+}
+
+/** POST /public/pay/{token}/order — the API creates a Razorpay order for the chosen dues. */
+export interface ParentPayOrder {
+  orderId: string;
+  amount: number;
+  /** Razorpay key id for Checkout; empty in demo mode. */
+  keyId: string;
 }

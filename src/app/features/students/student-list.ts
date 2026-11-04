@@ -7,10 +7,11 @@ import { BatchService } from '../../core/services/batch.service';
 import { StudentService } from '../../core/services/student.service';
 import { initials } from '../../shared/format';
 import { Icon } from '../../shared/icon';
+import { TPipe } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-student-list',
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './student-list.html',
   styleUrl: './students.scss',

@@ -84,3 +84,19 @@ fieldset.plain {
   font-size: 12px;
   margin: 0;
 }
+
+.link-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.link-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    font-size: 12px;
+  }
+}

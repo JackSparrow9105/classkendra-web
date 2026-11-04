@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
-import { Concession, Student, StudentImportRow } from '../models/models';
+import { Concession, PromotionRequest, PromotionResult, Student, StudentImportRow } from '../models/models';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
@@ -100,6 +100,36 @@ export class StudentService {
     });
     this.mock.repriceUnpaid(studentId);
     return this.mock.respond(this.mock.snapshot.students.find((x) => x.id === studentId)!);
+  }
+
+  /**
+   * POST /students/promote  { moves, keepBackStudentIds }
+   * Moves whole classes at once (8 · A → 9 · A, 12 → leaving) based on where students are *before*
+   * the promotion, so moving 8→9 and 9→10 together works. The API must do this in one transaction.
+   * Unpaid fees stay with the student.
+   */
+  promote(req: PromotionRequest): Observable<PromotionResult> {
+    if (!environment.useMock) return this.api.post<PromotionResult>('students/promote', req);
+    const result: PromotionResult = { moved: 0, left: 0, keptBack: 0 };
+    const target = new Map(req.moves.map((m) => [m.fromBatchId, m.toBatchId]));
+    const keep = new Set(req.keepBackStudentIds);
+    this.mock.update((s) => {
+      for (const st of s.students.filter((x) => x.active && target.has(x.batchId))) {
+        if (keep.has(st.id)) {
+          result.keptBack++;
+          continue;
+        }
+        const to = target.get(st.batchId);
+        if (to === null) {
+          st.active = false;
+          result.left++;
+        } else if (to && to !== st.batchId) {
+          st.batchId = to;
+          result.moved++;
+        }
+      }
+    });
+    return this.mock.respond(result, 700);
   }
 
   /** POST /students/import — the real API accepts the .xlsx file (multipart) and parses it server-side. */

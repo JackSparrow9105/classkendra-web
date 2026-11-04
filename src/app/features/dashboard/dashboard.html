@@ -1,31 +1,31 @@
 <div class="page">
   <header class="page-head">
     <div class="hello">
-      <span class="muted">{{ greeting }}</span>
+      <span class="muted">{{ greeting | t }}</span>
       <h1 class="page-title">{{ centre.centre()?.name }}</h1>
     </div>
     <div class="row head-actions">
       @if (centre.trialDaysLeft() !== null) {
         <a routerLink="/plans" class="trial-pill mobile-only">
-          <app-icon name="crown" [size]="16" /> {{ centre.trialDaysLeft() }} days left
+          <app-icon name="crown" [size]="16" /> {{ '{n} days left' | t: { n: centre.trialDaysLeft() ?? 0 } }}
         </a>
       }
-      <a routerLink="/settings" class="icon-btn mobile-only" aria-label="Settings"><app-icon name="settings" /></a>
+      <a routerLink="/settings" class="icon-btn mobile-only" [attr.aria-label]="'Settings' | t"><app-icon name="settings" /></a>
     </div>
   </header>
 
   @if (data(); as d) {
     @if (!setupDone()) {
       <section class="card get-started" aria-labelledby="gs-title">
-        <h2 id="gs-title">Finish setting up</h2>
-        <p class="page-sub">Two quick steps and reminders start going out by themselves.</p>
+        <h2 id="gs-title">{{ 'Finish setting up' | t }}</h2>
+        <p class="page-sub">{{ 'Two quick steps and reminders start going out by themselves.' | t }}</p>
 
         <a class="task" routerLink="/students/new" [class.done]="d.studentCount > 0">
           <span class="task-icon">
             @if (d.studentCount > 0) { <app-icon name="check" [size]="18" [stroke]="2.2" /> } @else { 1 }
           </span>
           <span class="task-text">
-            <strong>Add your students</strong>
+            <strong>{{ 'Add your students' | t }}</strong>
             <span>
               @if (d.studentCount > 0) { {{ d.studentCount }} added · add more any time }
               @else { Name, parent's WhatsApp number and {{ labels.l().groupLower }} }
@@ -39,8 +39,8 @@
             @if (d.feesConfigured) { <app-icon name="check" [size]="18" [stroke]="2.2" /> } @else { 2 }
           </span>
           <span class="task-text">
-            <strong>Set fees and reminders</strong>
-            <span>Your fees and when to remind parents</span>
+            <strong>{{ 'Set fees and reminders' | t }}</strong>
+            <span>{{ 'Your fees and when to remind parents' | t }}</span>
           </span>
           <app-icon name="chevron-right" [size]="18" />
         </a>
@@ -54,7 +54,7 @@
     @if (d.feesConfigured) {
       <section class="hero" aria-label="Fees this month">
         <div class="row" style="justify-content: space-between">
-          <a routerLink="/reports" class="hero-label report-link">Collected in {{ monthName(d.month) }} <app-icon name="chevron-right" [size]="14" /></a>
+          <a routerLink="/reports" class="hero-label report-link">{{ 'Collected in {month}' | t: { month: monthName(d.month) } }} <app-icon name="chevron-right" [size]="14" /></a>
           <span class="pct">{{ collectedPct() }}% of {{ rupees(d.expected) }}</span>
         </div>
         <span class="hero-amount">{{ rupees(d.collected) }}</span>
@@ -63,12 +63,12 @@
         </div>
         <div class="row hero-foot">
           <div class="stack" style="gap: 2px">
-            <span class="hero-label">Still pending</span>
-            <span class="hero-pending">{{ rupees(d.pending) }} · {{ d.pendingCount }} students</span>
+            <span class="hero-label">{{ 'Still pending' | t }}</span>
+            <span class="hero-pending">{{ rupees(d.pending) }} · {{ '{n} students' | t: { n: d.pendingCount } }}</span>
           </div>
           @if (d.pendingCount > 0) {
             <button type="button" class="btn btn-primary" [disabled]="reminding()" (click)="remindAll()">
-              {{ reminding() ? 'Sending…' : 'Remind all' }}
+              {{ (reminding() ? 'Sending…' : 'Remind all') | t }}
             </button>
           }
         </div>
@@ -78,19 +78,19 @@
     @if (d.studentCount > 0) {
       <div class="grid-2">
         <a class="card stat link-card" routerLink="/attendance">
-          <span class="stat-label">Today's attendance</span>
+          <span class="stat-label">{{ "Today's attendance" | t }}</span>
           @if (attendancePct() !== null) {
             <span class="stat-value">{{ attendancePct() }}%</span>
-            <span class="stat-note ok-text">{{ d.presentToday }} of {{ d.markedToday }} present</span>
+            <span class="stat-note ok-text">{{ '{a} of {b} present' | t: { a: d.presentToday, b: d.markedToday } }}</span>
           } @else {
             <span class="stat-value">—</span>
-            <span class="stat-note accent-text">Mark attendance</span>
+            <span class="stat-note accent-text">{{ 'Mark attendance' | t }}</span>
           }
         </a>
         <a class="card stat link-card" routerLink="/fees">
-          <span class="stat-label">Due this week</span>
+          <span class="stat-label">{{ 'Due this week' | t }}</span>
           <span class="stat-value">{{ rupees(d.dueThisWeek) }}</span>
-          <span class="stat-note">{{ d.dueThisWeekCount }} students</span>
+          <span class="stat-note">{{ '{n} students' | t: { n: d.dueThisWeekCount } }}</span>
         </a>
       </div>
     }
@@ -98,8 +98,8 @@
     @if (d.needsAttention.length > 0) {
       <section class="stack">
         <div class="section-title">
-          <h2 style="font-size: 16px">Late fees</h2>
-          <a routerLink="/fees">See all</a>
+          <h2 style="font-size: 16px">{{ 'Late fees' | t }}</h2>
+          <a routerLink="/fees">{{ 'See all' | t }}</a>
         </div>
         <div class="card card--list">
           @for (n of d.needsAttention; track n.studentId) {
@@ -107,9 +107,9 @@
               <span class="avatar warn">{{ initials(n.studentName) }}</span>
               <div class="list-main">
                 <span class="list-title">{{ n.studentName }}</span>
-                <span class="list-sub warn-text">{{ rupees(n.pending) }} · {{ n.maxDaysLate }} days late</span>
+                <span class="list-sub warn-text">{{ '{amount} · {n} days late' | t: { amount: rupees(n.pending), n: n.maxDaysLate } }}</span>
               </div>
-              <button type="button" class="btn btn-outline sm" (click)="remind(n)">Remind</button>
+              <button type="button" class="btn btn-outline sm" (click)="remind(n)">{{ 'Remind' | t }}</button>
             </div>
           }
         </div>

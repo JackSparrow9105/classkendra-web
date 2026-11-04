@@ -4,10 +4,11 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { Icon } from '../../shared/icon';
+import { I18nService, TPipe } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, Icon],
+  imports: [ReactiveFormsModule, Icon, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.html',
   styleUrl: './auth.scss',
@@ -24,6 +25,8 @@ export class Login {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly submitted = signal(false);
+
+  protected readonly i18n = inject(I18nService);
 
   protected readonly benefits = [
     'Fee reminders go out on WhatsApp',

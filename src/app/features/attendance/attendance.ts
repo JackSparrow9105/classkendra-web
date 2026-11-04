@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Batch, Student } from '../../core/models/models';
 import { LabelService } from '../../core/labels';
+import { I18nService, TPipe } from '../../core/i18n/i18n.service';
 import { AttendanceService } from '../../core/services/attendance.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BatchService } from '../../core/services/batch.service';
@@ -13,7 +14,7 @@ import { ToastService } from '../../shared/toast';
 
 @Component({
   selector: 'app-attendance',
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './attendance.html',
   styleUrl: './attendance.scss',
@@ -25,6 +26,7 @@ export class Attendance {
   private readonly toast = inject(ToastService);
   protected readonly labels = inject(LabelService);
   protected readonly auth = inject(AuthService);
+  private readonly i18n = inject(I18nService);
 
   protected readonly today = isoDate();
   protected readonly date = signal(this.today);
@@ -43,8 +45,9 @@ export class Attendance {
   protected readonly presentCount = computed(() => this.students().length - this.absentCount());
   protected readonly saveLabel = computed(() => {
     const n = this.absentCount();
-    if (this.saved() && !this.dirty()) return 'Saved';
-    return n === 0 ? 'Save · everyone present' : `Save · alert ${n} ${n === 1 ? 'parent' : 'parents'}`;
+    const t = (k: string, p?: Record<string, number>) => this.i18n.t(k, p);
+    if (this.saved() && !this.dirty()) return t('Saved');
+    return n === 0 ? t('Save · everyone present') : n === 1 ? t('Save · alert 1 parent') : t('Save · alert {n} parents', { n });
   });
 
   constructor() {
@@ -82,7 +85,12 @@ export class Attendance {
       this.busy.set(false);
       this.saved.set(true);
       this.dirty.set(false);
-      this.toast.show(res.alerted ? `Saved. ${res.alerted} ${res.alerted === 1 ? 'parent' : 'parents'} alerted on WhatsApp.` : 'Attendance saved');
+      const n = res.alerted;
+      this.toast.show(
+        n === 0 ? this.i18n.t('Attendance saved')
+          : n === 1 ? this.i18n.t('Saved. 1 parent alerted on WhatsApp.')
+          : this.i18n.t('Saved. {n} parents alerted on WhatsApp.', { n }),
+      );
     });
   }
 

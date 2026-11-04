@@ -1,0 +1,94 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row">
+      <a routerLink="/settings" class="icon-btn" aria-label="Back to settings"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">{{ labels.isSchool() ? 'Promote to next class' : 'Move students' }}</h1>
+    </div>
+  </header>
+
+  @if (result(); as r) {
+    <section class="card done">
+      <span class="done-icon"><app-icon name="check" [size]="28" [stroke]="2.4" /></span>
+      <strong>New session is ready</strong>
+      <span class="muted">{{ r.moved }} moved up · {{ r.left }} marked as leaving · {{ r.keptBack }} kept back</span>
+      <span class="muted small">Unpaid fees from last session stay with each student. Check fee amounts for the new session in Fees and reminders.</span>
+      <div class="row" style="gap: 10px; margin-top: 8px">
+        <a routerLink="/students" class="btn btn-outline">See students</a>
+        <a routerLink="/fees/setup" class="btn btn-primary">Check fees</a>
+      </div>
+    </section>
+  } @else {
+    <p class="page-sub" style="margin-top: -8px">
+      @if (labels.isSchool()) {
+        Do this once at the start of the new session. Each class moves to the next one. Untick students who are being kept back.
+      } @else {
+        Move a whole batch to another batch, or mark it as finished. Untick students who should stay.
+      }
+    </p>
+
+    @if (loading()) { <p class="muted">Loading…</p> }
+
+    <div class="stack">
+      @for (r of rows(); track r.batch.id) {
+        <section class="card row-card" [class.needs]="r.target === '' && r.students.length > 0">
+          <div class="map">
+            <div class="from">
+              <strong>{{ r.batch.name }}</strong>
+              <span class="muted">{{ r.students.length }} students</span>
+            </div>
+            <app-icon name="chevron-right" [size]="18" />
+            <div class="to">
+              <label class="sr-only" [for]="'t-' + r.batch.id">Move {{ r.batch.name }} to</label>
+              <select class="input" [id]="'t-' + r.batch.id" [ngModel]="r.target" (ngModelChange)="setTarget(r, $event)">
+                @if (r.target === '') { <option value="" disabled>Choose…</option> }
+                <option value="stay">Stay in {{ r.batch.name }}</option>
+                @for (b of batches(); track b.id) {
+                  @if (b.id !== r.batch.id) { <option [value]="b.id">{{ b.name }}</option> }
+                }
+                <option value="leave">Passed out / leaving</option>
+              </select>
+            </div>
+          </div>
+
+          @if (r.missingNext && r.target === '') {
+            <button type="button" class="btn btn-outline sm create" (click)="createNext(r)">
+              <app-icon name="plus" [size]="16" [stroke]="2" /> Create {{ labels.isSchool() ? 'Class ' + r.missingNext.className : r.missingNext.className }}@if (r.missingNext.section) { · {{ r.missingNext.section }} }
+            </button>
+          }
+
+          @if (r.target !== 'stay' && r.target !== '' && r.students.length > 0) {
+            <button type="button" class="link-btn" (click)="toggleOpen(r)" [attr.aria-expanded]="r.open">
+              {{ r.moving.size === r.students.length ? 'All ' + r.students.length + ' move' : r.moving.size + ' move · ' + (r.students.length - r.moving.size) + ' kept back' }}
+              <app-icon [name]="r.open ? 'chevron-down' : 'chevron-right'" [size]="16" />
+            </button>
+            @if (r.open) {
+              <div class="students">
+                @for (s of r.students; track s.id) {
+                  <label class="st">
+                    <input type="checkbox" [checked]="r.moving.has(s.id)" (change)="toggleStudent(r, s.id)">
+                    <span>{{ s.name }}</span>
+                    @if (!r.moving.has(s.id)) { <span class="badge warn">Kept back</span> }
+                  </label>
+                }
+              </div>
+            }
+          }
+        </section>
+      }
+    </div>
+
+    @if (rows().length) {
+      <div class="card preview">
+        <div><strong>{{ summary().move }}</strong><span>move up</span></div>
+        <div><strong>{{ summary().leave }}</strong><span>leaving</span></div>
+        <div><strong>{{ summary().keep }}</strong><span>kept back</span></div>
+      </div>
+    }
+
+    @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+
+    <button type="button" class="btn btn-primary lg block" [disabled]="busy() || loading()" (click)="run()">
+      {{ busy() ? 'Moving students…' : (labels.isSchool() ? 'Promote students' : 'Move students') }}
+    </button>
+  }
+</div>

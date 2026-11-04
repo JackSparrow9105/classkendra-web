@@ -1,6 +1,6 @@
 <div class="page">
   <header class="page-head">
-    <h1 class="page-title">Students</h1>
+    <h1 class="page-title">{{ 'Students' | t }}</h1>
     @if (!auth.isTeacher()) {
       <div class="row" style="gap: 8px">
         <a routerLink="/students/import" class="btn btn-outline sm">More ways to add</a>
@@ -12,13 +12,13 @@
   <div class="search">
     <app-icon name="search" [size]="18" />
     <label for="student-search" class="sr-only">Search students</label>
-    <input id="student-search" type="search" placeholder="Search name or phone"
+    <input id="student-search" type="search" [placeholder]="'Search name or phone' | t"
            [value]="search()" (input)="onSearch($any($event.target).value)">
   </div>
 
   @if (batches().length > 1) {
     <div class="chips" role="group" [attr.aria-label]="'Filter by ' + labels.l().groupLower">
-      <button type="button" class="chip dark" [class.on]="!batchId()" [attr.aria-pressed]="!batchId()" (click)="pickBatch('')">All</button>
+      <button type="button" class="chip dark" [class.on]="!batchId()" [attr.aria-pressed]="!batchId()" (click)="pickBatch('')">{{ 'All' | t }}</button>
       @for (b of batches(); track b.id) {
         <button type="button" class="chip dark" [class.on]="batchId() === b.id" [attr.aria-pressed]="batchId() === b.id"
                 (click)="pickBatch(b.id)">{{ b.name }}</button>
@@ -30,11 +30,11 @@
     <div class="card empty">
       <span class="empty-icon"><app-icon name="users" [size]="26" /></span>
       @if (search() || batchId()) {
-        <strong>No students match</strong>
+        <strong>{{ 'No students match' | t }}</strong>
         <span class="muted">Try another name or {{ labels.l().groupLower }}.</span>
       } @else if (auth.isTeacher()) {
-        <strong>No students in your {{ labels.l().groupsLower }} yet</strong>
-        <span class="muted">The office adds students. Ask them if someone is missing.</span>
+        <strong>{{ 'No students in your {groups} yet' | t: { groups: (labels.l().groupsLower | t) } }}</strong>
+        <span class="muted">{{ 'The office adds students. Ask them if someone is missing.' | t }}</span>
       } @else {
         <strong>No students yet</strong>
         <span class="muted">Add your first student. It takes about 15 seconds.</span>
@@ -42,7 +42,7 @@
       }
     </div>
   } @else {
-    <span class="count muted">{{ list().length }} students</span>
+    <span class="count muted">{{ '{n} students' | t: { n: list().length } }}</span>
     <div class="card card--list">
       @for (s of list(); track s.id) {
         @if (auth.isTeacher()) {

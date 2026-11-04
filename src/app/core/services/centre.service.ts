@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
-import { Centre } from '../models/models';
+import { Centre, Lang } from '../models/models';
 import { daysBetween, isoDate } from '../../shared/format';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
@@ -54,6 +54,14 @@ export class CentreService {
     return call$.pipe(tap((c) => this.centre.set(c)));
   }
 
+  /** PUT /centre/message-language  { language } — which approved WhatsApp templates parents get. */
+  setMessageLanguage(language: Lang): Observable<Centre> {
+    const call$ = environment.useMock
+      ? (this.mock.update((s) => s.centre && (s.centre.messageLanguage = language)), this.mock.respond(this.mock.snapshot.centre!))
+      : this.api.put<Centre>('centre/message-language', { language });
+    return call$.pipe(tap((c) => this.centre.set(c)));
+  }
+
   private mockSave(input: CentreInput): Observable<Centre> {
     const existing = this.mock.snapshot.centre;
     const trialEnd = new Date();
@@ -68,6 +76,7 @@ export class CentreService {
           messagesUsed: 0,
           messageLimit: 500,
           setupComplete: false,
+          messageLanguage: 'en',
         };
     this.mock.update((s) => (s.centre = centre));
     return this.mock.respond(centre);

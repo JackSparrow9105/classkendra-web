@@ -12,19 +12,19 @@
       <a [routerLink]="item.path" routerLinkActive="active" #rla="routerLinkActive"
          [attr.aria-current]="rla.isActive ? 'page' : null">
         <app-icon [name]="item.icon" />
-        {{ item.label }}
+        {{ item.label | t }}
       </a>
     }
     @if (!auth.isTeacher()) {
       <a routerLink="/reports" routerLinkActive="active" #rlr="routerLinkActive"
          [attr.aria-current]="rlr.isActive ? 'page' : null">
         <app-icon name="chart" />
-        Reports
+        {{ 'Reports' | t }}
       </a>
       <a routerLink="/settings" routerLinkActive="active" #rls="routerLinkActive"
          [attr.aria-current]="rls.isActive ? 'page' : null">
         <app-icon name="settings" />
-        Settings
+        {{ 'Settings' | t }}
       </a>
     }
   </nav>
@@ -32,7 +32,7 @@
   @if (auth.isOwner() && centre.trialDaysLeft() !== null) {
     <a class="trial" routerLink="/plans">
       <app-icon name="crown" [size]="18" />
-      <span>Free trial · {{ centre.trialDaysLeft() }} days left</span>
+      <span>{{ 'Free trial · {n} days left' | t: { n: centre.trialDaysLeft() ?? 0 } }}</span>
     </a>
   }
 </aside>
@@ -46,7 +46,7 @@
     <a [routerLink]="item.path" routerLinkActive="active" #rlb="routerLinkActive"
        [attr.aria-current]="rlb.isActive ? 'page' : null">
       <app-icon [name]="item.icon" [size]="22" />
-      <span>{{ item.label }}</span>
+      <span>{{ item.label | t }}</span>
     </a>
   }
 </nav>

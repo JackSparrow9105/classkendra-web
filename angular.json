@@ -3,7 +3,7 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "analytics": "193d04c0-8986-49da-8249-8702d4d364a6"
+    "analytics": "343a379c-3d28-43c3-adc4-f710dfd4c199"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -52,7 +52,8 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": ["src/styles.scss"],
+            "allowedCommonJsDependencies": ["exceljs"]
           },
           "configurations": {
             "production": {
@@ -68,7 +69,8 @@
                   "maximumError": "16kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "serviceWorker": "ngsw-config.json"
             },
             "development": {
               "optimization": false,

@@ -1,0 +1,77 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row">
+      <a [routerLink]="studentId() ? ['/students', studentId()] : '/settings'" class="icon-btn" aria-label="Back"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">WhatsApp messages</h1>
+    </div>
+  </header>
+
+  @if (summary(); as s) {
+    <div class="stats">
+      <div class="card stat">
+        <span class="stat-label">Messages</span>
+        <span class="stat-value">{{ s.total }}</span>
+      </div>
+      <div class="card stat">
+        <span class="stat-label">Delivered</span>
+        <span class="stat-value">{{ deliveredPct() === null ? '—' : deliveredPct() + '%' }}</span>
+      </div>
+      <button type="button" class="card stat fail-card" [class.on]="status() === 'Failed'" (click)="setStatus(status() === 'Failed' ? '' : 'Failed')">
+        <span class="stat-label">Failed</span>
+        <span class="stat-value" [class.warn-text]="s.byStatus.Failed > 0">{{ s.byStatus.Failed }}</span>
+      </button>
+    </div>
+  }
+
+  @if (studentId()) {
+    <div class="note">
+      <app-icon name="info" [size]="18" />
+      <span>Showing messages to one family. <a routerLink="/messages">Show all</a></span>
+    </div>
+  }
+
+  <div class="chips" role="group" aria-label="Message type">
+    @for (t of types; track t.id) {
+      <button type="button" class="chip dark" [class.on]="type() === t.id" [attr.aria-pressed]="type() === t.id" (click)="setType(t.id)">{{ t.label }}</button>
+    }
+  </div>
+
+  <div class="filter-row">
+    <div class="search">
+      <app-icon name="search" [size]="18" />
+      <label for="msg-search" class="sr-only">Search messages</label>
+      <input id="msg-search" type="search" placeholder="Search name or number" [value]="search()" (input)="onSearch($any($event.target).value)">
+    </div>
+    <label for="msg-status" class="sr-only">Status</label>
+    <select id="msg-status" class="input status-select" [ngModel]="status()" (ngModelChange)="setStatus($event)">
+      <option value="">Any status</option>
+      @for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }
+    </select>
+  </div>
+
+  @if (loaded() && rows().length === 0) {
+    <div class="card empty">No messages here yet. Reminders, absent alerts and receipts will show up as they're sent.</div>
+  }
+
+  <div class="stack">
+    @for (m of rows(); track m.id) {
+      <article class="card msg">
+        <div class="msg-top">
+          <span class="avatar" [class.warn]="m.status === 'Failed'"><app-icon [name]="typeIcon[m.type]" [size]="18" /></span>
+          <div class="msg-who">
+            <strong>{{ m.recipientName }}</strong>
+            <span class="muted">+91 {{ m.phone }} · {{ when(m.createdAt) }}</span>
+          </div>
+          <span [class]="'badge ' + badgeClass(m.status)">{{ m.status }}</span>
+        </div>
+        <p class="msg-text">{{ m.text }}</p>
+        @if (m.status === 'Failed') {
+          <div class="msg-fail">
+            <span>{{ m.error }}</span>
+            <button type="button" class="btn btn-outline sm" (click)="retry(m)">Retry</button>
+          </div>
+        }
+      </article>
+    }
+  </div>
+</div>

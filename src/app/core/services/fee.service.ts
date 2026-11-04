@@ -15,6 +15,7 @@ import {
   StudentFees,
 } from '../models/models';
 import { sessionYear } from '../fees/schedule';
+import { feeReminderText, receiptText } from '../messages/templates';
 import { daysBetween, isoDate, monthKey } from '../../shared/format';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
@@ -103,6 +104,7 @@ export class FeeService {
       payments,
       balance: dues.reduce((t, d) => t + d.balance, 0),
       paidThisSession: payments.filter((p) => inSession(p.paidOn.slice(0, 7))).reduce((t, p) => t + p.amount, 0),
+      payLink: this.mock.payLink(studentId),
     });
   }
 
@@ -111,13 +113,25 @@ export class FeeService {
     if (!environment.useMock) return this.api.post<{ sent: number }>('fees/remind', { studentIds });
     let sent = 0;
     this.mock.update((s) => {
+      const lang = s.centre?.messageLanguage ?? 'en';
       for (const id of studentIds) {
+        const st = s.students.find((x) => x.id === id);
         const pending = s.dues.filter((d) => d.studentId === id && d.status !== 'Paid');
-        if (!pending.length) continue;
+        if (!st || !pending.length) continue;
         pending.forEach((d) => d.remindersSent++);
+        const amount = pending.reduce((t, d) => t + d.amount - d.paidAmount, 0);
+        const oldest = pending.map((d) => d.dueDate).sort()[0]!;
+        const late = daysBetween(oldest, isoDate());
+        const dueText = late > 0 ? (lang === 'hi' ? `${late} दिन देर` : `${late} days late`) : `${lang === 'hi' ? 'देय' : 'due'} ${oldest.slice(8)}/${oldest.slice(5, 7)}`;
+        this.mock.logMessage({
+          studentId: id,
+          recipientName: st.parentName || `${st.name}'s parent`,
+          phone: st.parentPhone,
+          type: 'FeeReminder',
+          text: feeReminderText(lang, { org: s.centre?.name ?? '', student: st.name, amount, dueText, link: this.mock.payLink(id) }),
+        });
         sent++;
       }
-      if (s.centre) s.centre.messagesUsed += sent;
     });
     return this.mock.respond({ sent }, 300);
   }
@@ -157,9 +171,23 @@ export class FeeService {
         allocations,
       };
       st.payments.push(payment);
-      if (st.centre) st.centre.messagesUsed++; // WhatsApp receipt
     });
-    return this.mock.respond(toPaymentView(payment, this.mock.snapshot));
+    const view = toPaymentView(payment, this.mock.snapshot);
+    const student = this.mock.snapshot.students.find((x) => x.id === req.studentId);
+    if (student) {
+      this.mock.update((st) =>
+        this.mock.logMessage({
+          studentId: student.id,
+          recipientName: student.parentName || `${student.name}'s parent`,
+          phone: student.parentPhone,
+          type: 'Receipt',
+          text: receiptText(st.centre?.messageLanguage ?? 'en', {
+            org: st.centre?.name ?? '', student: student.name, amount: view.amount, receiptNo: view.receiptNo, balance: view.balanceAfter,
+          }),
+        }),
+      );
+    }
+    return this.mock.respond(view);
   }
 
   /** GET /payments/{id} — one receipt. */

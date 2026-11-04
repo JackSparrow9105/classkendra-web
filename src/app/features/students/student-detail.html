@@ -39,6 +39,18 @@
       </div>
     }
 
+    <section class="card link-card">
+      <div class="link-text">
+        <strong>Parent payment link</strong>
+        <span class="muted">Parents open this from the WhatsApp reminder and pay by UPI. No app needed.</span>
+      </div>
+      <div class="row" style="gap: 8px">
+        <button type="button" class="btn btn-outline sm" (click)="copyLink(d.payLink)">Copy link</button>
+        <a class="btn btn-outline sm" [href]="d.payLink" target="_blank" rel="noopener">Open</a>
+        <a class="btn btn-ghost sm" routerLink="/messages" [queryParams]="{ studentId: d.student.id }">Messages</a>
+      </div>
+    </section>
+
     <section class="stack">
       <div class="section-title">
         <h2 class="h2">Discounts</h2>

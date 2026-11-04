@@ -6,10 +6,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { CentreService } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { Icon } from '../../shared/icon';
+import { TPipe } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-otp',
-  imports: [ReactiveFormsModule, RouterLink, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Icon, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './otp.html',
   styleUrl: './auth.scss',

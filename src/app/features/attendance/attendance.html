@@ -2,11 +2,11 @@
   <header class="page-head">
     <div class="stack" style="gap: 2px">
       <span class="muted" style="font-size: 13px">{{ longDate(date()) }}</span>
-      <h1 class="page-title">Attendance</h1>
+      <h1 class="page-title">{{ 'Attendance' | t }}</h1>
     </div>
     <label class="btn btn-outline sm date-btn">
       <app-icon name="calendar-check" [size]="16" />
-      {{ date() === today ? 'Today' : 'Change date' }}
+      {{ (date() === today ? 'Today' : 'Change date') | t }}
       <input type="date" [max]="today" [value]="date()" (change)="setDate($any($event.target).value)" aria-label="Attendance date">
     </label>
   </header>
@@ -14,8 +14,8 @@
   @if (batches().length === 0 && !loading()) {
     <div class="card stack" style="align-items: flex-start">
       @if (auth.isTeacher()) {
-        <strong>No {{ labels.l().groupsLower }} assigned to you yet</strong>
-        <span class="muted">Ask the office to add you to your {{ labels.l().groupsLower }}.</span>
+        <strong>{{ 'No {groups} assigned to you yet' | t: { groups: (labels.l().groupsLower | t) } }}</strong>
+        <span class="muted">{{ 'Ask the office to add you to your {groups}.' | t: { groups: (labels.l().groupsLower | t) } }}</span>
       } @else {
         <strong>No {{ labels.l().groupsLower }} yet</strong>
         <span class="muted">Add a {{ labels.l().groupLower }} and students to start marking attendance.</span>
@@ -31,19 +31,19 @@
     </div>
 
     <div class="grid-2">
-      <div class="count-card ok"><span>Present</span><strong>{{ presentCount() }}</strong></div>
-      <div class="count-card warn"><span>Absent</span><strong>{{ absentCount() }}</strong></div>
+      <div class="count-card ok"><span>{{ 'Present' | t }}</span><strong>{{ presentCount() }}</strong></div>
+      <div class="count-card warn"><span>{{ 'Absent' | t }}</span><strong>{{ absentCount() }}</strong></div>
     </div>
 
     @if (saved() && !dirty()) {
-      <div class="note ok" role="status"><app-icon name="check" [size]="18" [stroke]="2.2" /> Saved for this day. Tap a name to change it.</div>
+      <div class="note ok" role="status"><app-icon name="check" [size]="18" [stroke]="2.2" /> {{ 'Saved for this day. Tap a name to change it.' | t }}</div>
     } @else {
-      <p class="hint muted">Everyone starts as present. Tap a student who is absent.</p>
+      <p class="hint muted">{{ 'Everyone starts as present. Tap a student who is absent.' | t }}</p>
     }
 
     @if (!loading() && students().length === 0) {
       <div class="card stack" style="align-items: flex-start">
-        <strong>No students in this {{ labels.l().groupLower }}</strong>
+        <strong>{{ 'No students in this {group}' | t: { group: (labels.l().groupLower | t) } }}</strong>
         @if (!auth.isTeacher()) { <a routerLink="/students/new" class="btn btn-outline sm">Add student</a> }
       </div>
     }
@@ -54,7 +54,7 @@
                 [attr.aria-pressed]="absent().has(s.id)" (click)="toggle(s.id)">
           <span class="att-avatar">{{ initials(s.name) }}</span>
           <span class="att-name">{{ s.name }}</span>
-          <span class="att-chip">{{ absent().has(s.id) ? 'Absent' : 'Present' }}</span>
+          <span class="att-chip">{{ (absent().has(s.id) ? 'Absent' : 'Present') | t }}</span>
         </button>
       }
     </div>
@@ -65,7 +65,7 @@
   <div class="action-bar">
     <div class="action-inner">
       <button type="button" class="btn btn-primary lg block" [disabled]="busy() || (saved() && !dirty())" (click)="save()">
-        {{ busy() ? 'Saving…' : saveLabel() }}
+        {{ busy() ? ('Saving…' | t) : saveLabel() }}
       </button>
     </div>
   </div>

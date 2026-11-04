@@ -104,3 +104,28 @@
     color: var(--ink);
   }
 }
+
+.lang {
+  display: flex;
+  gap: 2px;
+  background: #e9ebf3;
+  padding: 3px;
+  border-radius: 999px;
+
+  button {
+    height: 32px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &.on {
+      background: var(--surface);
+      color: var(--ink);
+    }
+  }
+}

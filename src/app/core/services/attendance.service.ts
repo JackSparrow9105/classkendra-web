@@ -3,6 +3,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
 import { AttendanceSheet } from '../models/models';
+import { absentAlertText } from '../messages/templates';
+import { longDate } from '../../shared/format';
 import { ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
@@ -28,10 +30,22 @@ export class AttendanceService {
     }
     const key = `${batchId}|${date}`;
     const before = this.mock.snapshot.attendance[key] ?? [];
-    const alerted = absentStudentIds.filter((id) => !before.includes(id)).length;
+    const newlyAbsent = absentStudentIds.filter((id) => !before.includes(id));
+    const alerted = newlyAbsent.length;
     this.mock.update((s) => {
       s.attendance[key] = [...absentStudentIds];
-      if (s.centre) s.centre.messagesUsed += alerted;
+      const lang = s.centre?.messageLanguage ?? 'en';
+      for (const id of newlyAbsent) {
+        const st = s.students.find((x) => x.id === id);
+        if (!st) continue;
+        this.mock.logMessage({
+          studentId: id,
+          recipientName: st.parentName || `${st.name}'s parent`,
+          phone: st.parentPhone,
+          type: 'AbsentAlert',
+          text: absentAlertText(lang, { org: s.centre?.name ?? '', student: st.name, date: longDate(date) }),
+        });
+      }
     });
     return this.mock.respond({ alerted }, 400);
   }

@@ -59,3 +59,45 @@
     display: none;
   }
 }
+
+.pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.pref-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pref-sub {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.seg.compact {
+  flex-shrink: 0;
+
+  button {
+    height: 34px;
+    padding: 0 12px;
+  }
+}
+
+.steps-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.5;
+}

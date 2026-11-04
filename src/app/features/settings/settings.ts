@@ -4,6 +4,9 @@ import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../../core/mock/mock-db';
 import { LabelService } from '../../core/labels';
+import { I18nService, TPipe } from '../../core/i18n/i18n.service';
+import { InstallService } from '../../core/install.service';
+import { Lang } from '../../core/models/models';
 import { AuthService } from '../../core/services/auth.service';
 import { CentreService } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
@@ -20,7 +23,7 @@ interface SettingLink {
 
 @Component({
   selector: 'app-settings',
-  imports: [ReactiveFormsModule, RouterLink, Icon, BottomSheet],
+  imports: [ReactiveFormsModule, RouterLink, Icon, BottomSheet, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
@@ -32,26 +35,37 @@ export class Settings {
   protected readonly auth = inject(AuthService);
   protected readonly centre = inject(CentreService);
   protected readonly labels = inject(LabelService);
+  protected readonly i18n = inject(I18nService);
+  protected readonly installer = inject(InstallService);
 
   protected readonly user = this.auth.user;
   protected readonly isDemo = environment.useMock;
   protected readonly editing = signal(false);
   protected readonly busy = signal(false);
   protected readonly error = signal('');
+  protected readonly showIosHelp = signal(false);
 
   /** What each role can open from Settings. Teachers only get their account. */
   protected readonly links = computed<SettingLink[]>(() => {
     if (this.auth.isTeacher()) return [];
     const l = this.labels.l();
+    const school = this.labels.isSchool();
     const office: SettingLink[] = [
-      { path: '/batches', icon: 'cap', title: l.groups, sub: this.labels.isSchool() ? 'Add classes and sections' : 'Add, rename or change timings' },
       { path: '/reports', icon: 'chart', title: 'Collection report', sub: 'Monthly collection by class and mode, Excel download' },
+      { path: '/messages', icon: 'whatsapp', title: 'WhatsApp messages', sub: 'Every reminder, alert and receipt, and whether it was delivered' },
+      { path: '/batches', icon: 'cap', title: l.groups, sub: school ? 'Add classes and sections' : 'Add, rename or change timings' },
       { path: '/fees/setup', icon: 'wallet', title: 'Fees and reminders', sub: 'Fee types, amounts, due date, reminder rules' },
       { path: '/students/import', icon: 'upload', title: 'Import students', sub: 'Upload a list or send us your register' },
     ];
     if (!this.auth.isOwner()) return office;
     return [
       ...office,
+      {
+        path: '/promote',
+        icon: 'chevron-right',
+        title: school ? 'Promote to next class' : 'Move students between batches',
+        sub: school ? 'At the start of the new session' : 'Move a whole batch or mark it finished',
+      },
       { path: '/staff', icon: 'user-plus', title: 'Staff and teachers', sub: 'Who can sign in and what they can do' },
       { path: '/plans', icon: 'crown', title: 'Plan and billing', sub: 'Trial, plans and message usage' },
     ];
@@ -70,6 +84,25 @@ export class Settings {
 
   constructor() {
     this.centre.load().subscribe();
+  }
+
+  protected setAppLang(l: Lang): void {
+    this.i18n.set(l);
+  }
+
+  protected setMessageLang(l: Lang): void {
+    this.centre.setMessageLanguage(l).subscribe(() =>
+      this.toast.show(l === 'hi' ? 'Parents will get WhatsApp messages in Hindi' : 'Parents will get WhatsApp messages in English'),
+    );
+  }
+
+  protected async install(): Promise<void> {
+    if (this.installer.canPrompt()) {
+      const ok = await this.installer.install();
+      if (ok) this.toast.show('ClassKendra added to your home screen');
+    } else {
+      this.showIosHelp.set(true);
+    }
   }
 
   protected edit(): void {

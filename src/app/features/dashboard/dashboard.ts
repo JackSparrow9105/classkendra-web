@@ -10,10 +10,11 @@ import { FeeService } from '../../core/services/fee.service';
 import { initials, monthName, rupees } from '../../shared/format';
 import { Icon } from '../../shared/icon';
 import { ToastService } from '../../shared/toast';
+import { TPipe } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',

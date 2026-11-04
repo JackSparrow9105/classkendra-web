@@ -8,6 +8,8 @@ import {
   FeeDue,
   FeeHead,
   FeeSettings,
+  MessageLog,
+  MessageType,
   Payment,
   PaymentMode,
   StaffMember,
@@ -15,6 +17,7 @@ import {
 } from '../models/models';
 import { discountFor } from '../fees/concessions';
 import { isDueIn, periodFor, sessionYear } from '../fees/schedule';
+import { feeReminderText, receiptText } from '../messages/templates';
 import { schoolGroupName } from '../labels';
 import { isoDate, monthKey } from '../../shared/format';
 
@@ -38,6 +41,7 @@ export interface MockState {
   feeSettings: FeeSettings | null;
   staff: StaffMember[];
   attendance: Record<string, string[]>;
+  messages: MessageLog[];
 }
 
 const KEY = 'classkendra-mock-v3';
@@ -56,6 +60,7 @@ function empty(): MockState {
     feeSettings: null,
     staff: [],
     attendance: {},
+    messages: [],
   };
 }
 
@@ -88,6 +93,19 @@ export class MockDb {
   clearAll(): void {
     this.state = empty();
     this.save();
+  }
+
+  /** Adds a row to the WhatsApp outbox. The API's Hangfire job sends it and the provider webhook updates the status. */
+  logMessage(m: { studentId: string | null; recipientName: string; phone: string; type: MessageType; text: string }, at = new Date()): void {
+    const now = at.toISOString();
+    this.state.messages.push({ id: this.id('msg'), ...m, status: 'Queued', error: null, createdAt: now, updatedAt: now });
+    if (this.state.centre) this.state.centre.messagesUsed++;
+  }
+
+  /** Public payment link for a student. The API stores a random token per student instead. */
+  payLink(studentId: string): string {
+    const base = document.querySelector('base')?.getAttribute('href') ?? '/';
+    return `${location.origin}${base}pay/pt_${studentId}`;
   }
 
   /** "R-2026-0042": a running number per session, never reused. The API does this inside a transaction. */
@@ -234,6 +252,7 @@ export class MockDb {
     s.payments = [];
     s.receiptSeq = {};
     s.attendance = {};
+    s.messages = [];
     this.ensureDues(prevMonth);
     this.ensureDues(thisMonth);
 
@@ -259,6 +278,23 @@ export class MockDb {
     s.students.forEach((st, i) => {
       if (i % 5 < 3 && st.id !== 's_1') pay(st.id, thisMonth, isoDate(today), i % 2 ? 'Cash' : 'UPI');
     });
+
+    // Message history: yesterday's reminders to late families, and a WhatsApp receipt for each payment.
+    const org = s.centre?.name ?? '';
+    const yesterday = new Date(today.getTime() - 86_400_000);
+    for (const st of s.students) {
+      const owed = s.dues.filter((d) => d.studentId === st.id && d.status !== 'Paid' && d.month === prevMonth);
+      if (!owed.length) continue;
+      const amount = owed.reduce((t, d) => t + d.amount - d.paidAmount, 0);
+      this.logMessage({ studentId: st.id, recipientName: st.parentName, phone: st.parentPhone, type: 'FeeReminder',
+        text: feeReminderText('en', { org, student: st.name, amount, dueText: 'overdue', link: this.payLink(st.id) }) }, yesterday);
+    }
+    for (const p of s.payments) {
+      const st = s.students.find((x) => x.id === p.studentId)!;
+      this.logMessage({ studentId: st.id, recipientName: st.parentName, phone: st.parentPhone, type: 'Receipt',
+        text: receiptText('en', { org, student: st.name, amount: p.amount, receiptNo: p.receiptNo, balance: 0 }) }, new Date(`${p.paidOn}T10:30:00`));
+    }
+    if (s.centre) s.centre.messagesUsed = s.messages.length;
     this.save();
   }
 

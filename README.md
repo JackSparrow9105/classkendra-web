@@ -49,6 +49,14 @@ All wording that differs ("Batch" / "Class", "Centre" / "School") lives in `src/
 - **Receipts**: `/receipts/:id`, printable (browser print or save as PDF) and shareable on WhatsApp.
 - **Collection report**: `/reports`; collected = money received in the month (by receipt date), pending = balance still owed on bills up to that month. Excel has Summary, By class/batch and Receipts sheets.
 
+### Promotion, messages, parent page, Hindi and install
+
+- **Promote to next class** (`/promote`, owner only): each class maps to the next one with the same section (Class 12 → leaving). Missing classes can be created in one tap; untick students who are kept back. Moves are worked out from where students were *before* the promotion, so 8→9 and 9→10 happen together. Unpaid fees stay with the student. The API must run it in one transaction.
+- **WhatsApp message log** (`/messages`): every fee reminder, absent alert, receipt and staff invite, with status Queued → Sent → Delivered → Read, or Failed with a retry button. In demo mode statuses are simulated; in production they come from your WhatsApp provider's status webhook. Template texts (English and Hindi) live in `core/messages/templates.ts` and must match your Meta-approved templates.
+- **Parent payment page** (`/pay/:token`, public, no login): the link in every reminder. Parent sees the school, student and unpaid fees, picks what to pay and pays. Demo mode records the payment straight away; production creates a Razorpay order and the payment arrives through the Razorpay webhook (see `core/services/public-pay.service.ts`). Copy or open a family's link from the student page.
+- **Hindi**: switch on the sign-in screen or in Settings (remembered on each phone). Translated: navigation, sign-in, dashboard, attendance, students list, account and the parent page. Owners can also set parent WhatsApp messages to Hindi in Settings. To translate another screen, wrap its text in the `t` pipe (`{{ 'Fees' | t }}`) and add the line to `core/i18n/hi.ts`; anything without a Hindi line shows in English.
+- **Installable app (PWA)**: `ngsw-config.json`, `public/manifest.webmanifest` and the icons in `public/icons`. Settings › Install app shows the browser's install prompt, or "Add to Home Screen" steps on iPhone. The service worker only runs in production builds (`npm run build` / `ng deploy`).
+
 ### Roles
 
 | | Owner | Office staff | Teacher |
@@ -74,6 +82,9 @@ The API must enforce these too (filter by the teacher's `batchIds`); the UI hidi
 | Student page | `/students/:id` | Balance, discounts, every fee this session, receipts; record payment or remind |
 | Receipt | `/receipts/:id` | Printable receipt with receipt number; share on WhatsApp |
 | Collection report | `/reports` | Month totals by mode, fee and class, receipt list, Excel download |
+| Promote | `/promote` | Move classes to the next class at the start of the session |
+| Messages | `/messages` | WhatsApp message log with delivery status and retry |
+| Parent payment page | `/pay/:token` | Public page from the reminder link; English/Hindi |
 | Staff | `/staff` | Add office staff or teachers (with their classes); they sign in with their own number |
 | Attendance | `/attendance` | Everyone present by default, tap absentees, save alerts parents |
 | Plans | `/plans` | Trial status, message usage, monthly/yearly plans |
@@ -135,6 +146,13 @@ src/environments/environment.ts  ← useMock + apiUrl
 | POST / DELETE | `/students/{id}/concessions` · `/students/{id}/concessions/{cid}` | add or remove a discount |
 | GET | `/reports/collection?month=` · `/reports/collection.xlsx?month=` | collection report and its Excel file (build with ClosedXML) |
 | GET / POST | `/staff` · PUT / DELETE `/staff/{id}` | office staff and teachers |
+| POST | `/students/promote` `{ moves, keepBackStudentIds }` | promote to next class (one transaction) |
+| GET | `/messages?type=&status=&studentId=&search=` · `/messages/summary` | message log |
+| POST | `/messages/{id}/retry` | queue a failed message again |
+| PUT | `/centre/message-language` `{ language }` | parent messages in English or Hindi |
+| GET | `/public/pay/{token}` | parent payment page data (public, rate-limited) |
+| POST | `/public/pay/{token}/order` `{ dueIds }` | create a Razorpay order |
+| GET | `/public/pay/{token}/orders/{orderId}` | receipt once the Razorpay webhook has arrived |
 | GET / POST | `/attendance/{batchId}?date=` | attendance (save alerts only newly absent students) |
 | GET | `/dashboard` | dashboard summary |
 | GET | `/billing/plans` · POST `/billing/checkout` | plans |

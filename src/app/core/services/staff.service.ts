@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
 import { StaffMember } from '../models/models';
+import { staffInviteText } from '../messages/templates';
 import { ApiService } from './api.service';
 
 export type StaffInput = Omit<StaffMember, 'id'>;
@@ -30,7 +31,17 @@ export class StaffService {
       return this.mock.fail('Someone with this number is already added.');
     }
     const member: StaffMember = { id: this.mock.id('stf'), ...input };
-    this.mock.update((st) => st.staff.push(member));
+    this.mock.update((st) => {
+      st.staff.push(member);
+      const base = document.querySelector('base')?.getAttribute('href') ?? '/';
+      this.mock.logMessage({
+        studentId: null,
+        recipientName: member.name,
+        phone: member.phone,
+        type: 'StaffInvite',
+        text: staffInviteText({ org: st.centre?.name ?? '', name: member.name, link: `${location.origin}${base}login` }),
+      });
+    });
     return this.mock.respond(member);
   }
 

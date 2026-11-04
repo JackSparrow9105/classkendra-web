@@ -1,0 +1,79 @@
+<div class="pay-page">
+  <header class="pay-head">
+    @if (page(); as p) {
+      <div class="org">
+        <span class="org-logo">{{ p.orgName.charAt(0) }}</span>
+        <div class="org-text">
+          <strong>{{ p.orgName }}</strong>
+          @if (p.orgCity) { <span>{{ p.orgCity }}</span> }
+        </div>
+      </div>
+    } @else {
+      <span></span>
+    }
+    <div class="lang" role="radiogroup" [attr.aria-label]="'Language' | t">
+      <button type="button" role="radio" [class.on]="i18n.lang() === 'en'" [attr.aria-checked]="i18n.lang() === 'en'" (click)="setLang('en')">English</button>
+      <button type="button" role="radio" lang="hi" [class.on]="i18n.lang() === 'hi'" [attr.aria-checked]="i18n.lang() === 'hi'" (click)="setLang('hi')">हिंदी</button>
+    </div>
+  </header>
+
+  @if (invalid()) {
+    <div class="card center">
+      <p>{{ 'This payment link is not valid. Please ask the school for a new one.' | t }}</p>
+    </div>
+  } @else if (receipt(); as r) {
+    <div class="card center done">
+      <span class="done-icon"><app-icon name="check" [size]="30" [stroke]="2.4" /></span>
+      <strong class="done-title">{{ 'Payment received' | t }}</strong>
+      <strong class="done-amount">{{ rupees(r.amount) }}</strong>
+      <span class="muted">{{ 'Receipt {no}' | t: { no: r.receiptNo } }} · {{ niceDate(r.paidOn) }}</span>
+      @if (r.balanceAfter > 0) {
+        <span class="badge warn">{{ 'Still due: {amount}' | t: { amount: rupees(r.balanceAfter) } }}</span>
+      }
+      <span class="muted small">{{ 'The receipt has been sent to you on WhatsApp.' | t }}</span>
+    </div>
+  } @else if (page(); as p) {
+    <section class="card bill">
+      <div class="who">
+        <span class="muted">{{ 'Fees due for' | t }}</span>
+        <strong class="student">{{ p.studentName }}</strong>
+        <span class="muted">{{ p.batchName }}</span>
+      </div>
+
+      @if (p.dues.length === 0) {
+        <div class="note ok"><app-icon name="check" [size]="18" [stroke]="2.2" /> {{ 'Nothing is due right now. Thank you!' | t }}</div>
+      } @else {
+        <span class="label">{{ 'Choose what to pay' | t }}</span>
+        <div class="lines">
+          @for (d of p.dues; track d.id) {
+            <label class="line">
+              <input type="checkbox" [checked]="ticked().has(d.id)" (change)="toggle(d.id)">
+              <span class="line-text">
+                <strong>{{ d.headName | t }}</strong>
+                <span>
+                  {{ d.periodLabel }} ·
+                  @if (d.daysLate > 0) { <em class="late">{{ '{n} days late' | t: { n: d.daysLate } }}</em> }
+                  @else { {{ 'due {date}' | t: { date: niceDate(d.dueDate) } }} }
+                </span>
+              </span>
+              <strong>{{ rupees(d.balance) }}</strong>
+            </label>
+          }
+        </div>
+        <div class="total"><span>{{ 'Total' | t }}</span><strong>{{ rupees(selectedTotal()) }}</strong></div>
+      }
+    </section>
+
+    @if (p.dues.length > 0) {
+      <div class="pay-actions">
+        <span class="muted small center-text">{{ 'Pay with any UPI app' | t }} · GPay · PhonePe · Paytm · BHIM</span>
+        <button type="button" class="btn btn-primary lg block" [disabled]="paying() || selectedTotal() === 0" (click)="payNow()">
+          {{ paying() ? ('Opening payment…' | t) : ('Pay {amount}' | t: { amount: rupees(selectedTotal()) }) }}
+        </button>
+        <span class="secure muted small"><app-icon name="lock" [size]="14" [stroke]="2" /> {{ 'Secure payment · receipt sent on WhatsApp' | t }}</span>
+      </div>
+    }
+  } @else {
+    <p class="muted center-text">{{ 'Loading…' | t }}</p>
+  }
+</div>

@@ -2,9 +2,9 @@
   <header class="page-head">
     <div class="row">
       @if (!auth.isTeacher()) {
-        <a routerLink="/dashboard" class="icon-btn mobile-only" aria-label="Back"><app-icon name="chevron-left" /></a>
+        <a routerLink="/dashboard" class="icon-btn mobile-only" [attr.aria-label]="'Back' | t"><app-icon name="chevron-left" /></a>
       }
-      <h1 class="page-title">{{ auth.isTeacher() ? 'Account' : 'Settings' }}</h1>
+      <h1 class="page-title">{{ (auth.isTeacher() ? 'Account' : 'Settings') | t }}</h1>
     </div>
   </header>
 
@@ -14,7 +14,7 @@
       <div class="centre-text">
         <strong>{{ c.name }}</strong>
         <span>
-          {{ auth.isOwner() ? c.ownerName : (user()?.name || 'You') }} · {{ roleText() }} · +91 {{ user()?.phone }}
+          {{ auth.isOwner() ? c.ownerName : (user()?.name || 'You') }} · {{ roleText() | t }} · +91 {{ user()?.phone }}
         </span>
       </div>
       @if (auth.isOwner()) {
@@ -22,6 +22,38 @@
       }
     </section>
   }
+
+  <section class="card card--list">
+    <div class="pref-row">
+      <span class="pref-label">{{ 'App language' | t }}</span>
+      <div class="seg compact" role="radiogroup" [attr.aria-label]="'App language' | t">
+        <button type="button" role="radio" [class.on]="i18n.lang() === 'en'" [attr.aria-checked]="i18n.lang() === 'en'" (click)="setAppLang('en')">English</button>
+        <button type="button" role="radio" lang="hi" [class.on]="i18n.lang() === 'hi'" [attr.aria-checked]="i18n.lang() === 'hi'" (click)="setAppLang('hi')">हिंदी</button>
+      </div>
+    </div>
+    @if (auth.isOwner() && centre.centre(); as c) {
+      <div class="pref-row">
+        <span class="pref-label">
+          Parent WhatsApp messages
+          <span class="muted pref-sub">Reminders, absent alerts and receipts</span>
+        </span>
+        <div class="seg compact" role="radiogroup" aria-label="Parent message language">
+          <button type="button" role="radio" [class.on]="c.messageLanguage === 'en'" [attr.aria-checked]="c.messageLanguage === 'en'" (click)="setMessageLang('en')">English</button>
+          <button type="button" role="radio" lang="hi" [class.on]="c.messageLanguage === 'hi'" [attr.aria-checked]="c.messageLanguage === 'hi'" (click)="setMessageLang('hi')">हिंदी</button>
+        </div>
+      </div>
+    }
+    @if (!installer.installed()) {
+      <button type="button" class="list-row link-row" (click)="install()">
+        <span class="avatar accent"><app-icon name="download" [size]="18" /></span>
+        <span class="list-main">
+          <span class="list-title">{{ 'Install app' | t }}</span>
+          <span class="list-sub">{{ 'Add ClassKendra to your home screen' | t }}</span>
+        </span>
+        <app-icon name="chevron-right" [size]="18" />
+      </button>
+    }
+  </section>
 
   @if (links().length) {
     <nav class="card card--list" aria-label="Settings">
@@ -40,13 +72,32 @@
 
   <div class="stack">
     <button type="button" class="btn btn-outline lg block" (click)="logout()">
-      <app-icon name="logout" [size]="18" /> Sign out
+      <app-icon name="logout" [size]="18" /> {{ 'Sign out' | t }}
     </button>
     @if (isDemo && auth.isOwner()) {
       <button type="button" class="btn btn-ghost block danger" (click)="resetDemo()">Reset demo data</button>
     }
   </div>
 </div>
+
+@if (showIosHelp()) {
+  <app-bottom-sheet [title]="'Install app' | t" (closed)="showIosHelp.set(false)">
+    @if (installer.isIos) {
+      <ol class="steps-list">
+        <li>Tap the <strong>Share</strong> button at the bottom of Safari.</li>
+        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+        <li>Tap <strong>Add</strong>. ClassKendra now opens like an app.</li>
+      </ol>
+    } @else {
+      <ol class="steps-list">
+        <li>Open the browser menu (<strong>⋮</strong> at the top right in Chrome).</li>
+        <li>Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>
+        <li>ClassKendra now opens like an app from your home screen.</li>
+      </ol>
+    }
+    <button type="button" class="btn btn-primary lg block" (click)="showIosHelp.set(false)">OK</button>
+  </app-bottom-sheet>
+}
 
 @if (editing()) {
   <app-bottom-sheet [title]="labels.l().org + ' details'" (closed)="editing.set(false)">
