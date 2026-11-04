@@ -45,6 +45,7 @@ export class Settings {
     const l = this.labels.l();
     const office: SettingLink[] = [
       { path: '/batches', icon: 'cap', title: l.groups, sub: this.labels.isSchool() ? 'Add classes and sections' : 'Add, rename or change timings' },
+      { path: '/reports', icon: 'chart', title: 'Collection report', sub: 'Monthly collection by class and mode, Excel download' },
       { path: '/fees/setup', icon: 'wallet', title: 'Fees and reminders', sub: 'Fee types, amounts, due date, reminder rules' },
       { path: '/students/import', icon: 'upload', title: 'Import students', sub: 'Upload a list or send us your register' },
     ];

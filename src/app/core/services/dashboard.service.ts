@@ -20,7 +20,8 @@ export class DashboardService {
     const s = this.mock.snapshot;
     const today = isoDate();
     const monthDues = s.dues.filter((d) => d.month === month);
-    const pendingAll = s.dues.filter((d) => d.status === 'Pending' && d.month <= month);
+    const pendingAll = s.dues.filter((d) => d.status !== 'Paid' && d.month <= month);
+    const balance = (d: { amount: number; paidAmount: number }) => d.amount - d.paidAmount;
     const dueSoon = pendingAll.filter((d) => {
       const n = daysBetween(today, d.dueDate);
       return n >= 0 && n <= 7;
@@ -39,11 +40,12 @@ export class DashboardService {
 
     const summary: DashboardSummary = {
       month,
-      collected: monthDues.filter((d) => d.status === 'Paid').reduce((t, d) => t + (d.paidAmount ?? 0), 0),
+      // Money actually received this month (from receipts), against what was billed this month.
+      collected: s.payments.filter((p) => p.paidOn.startsWith(month)).reduce((t, p) => t + p.amount, 0),
       expected: monthDues.reduce((t, d) => t + d.amount, 0),
-      pending: pendingAll.reduce((t, d) => t + d.amount, 0),
+      pending: pendingAll.reduce((t, d) => t + balance(d), 0),
       pendingCount: new Set(pendingAll.map((d) => d.studentId)).size,
-      dueThisWeek: dueSoon.reduce((t, d) => t + d.amount, 0),
+      dueThisWeek: dueSoon.reduce((t, d) => t + balance(d), 0),
       dueThisWeekCount: new Set(dueSoon.map((d) => d.studentId)).size,
       presentToday: marked - absent,
       markedToday: marked,

@@ -62,6 +62,7 @@
           </span>
           <span class="due-right">
             <strong>{{ rupees(r.pending > 0 && tab() !== 'Paid' ? r.pending : r.paid) }}</strong>
+            @if (r.pending > 0 && r.paid > 0 && tab() !== 'Paid') { <span class="muted part-note">{{ rupees(r.paid) }} paid</span> }
             <span [class]="'badge ' + badgeClass(r)">{{ statusText(r) }}</span>
           </span>
         </button>
@@ -82,58 +83,6 @@
 }
 
 @if (selected(); as r) {
-  <app-bottom-sheet [title]="r.studentName" (closed)="selected.set(null)">
-    <span class="muted" style="font-size: 13px; margin-top: -10px">{{ r.batchName }}</span>
-
-    <div class="due-lines" role="group" aria-label="Fees">
-      @for (d of r.dues; track d.id) {
-        @if (d.status === 'Pending') {
-          <label class="due-line">
-            <input type="checkbox" [checked]="ticked().has(d.id)" (change)="toggleDue(d.id)">
-            <span class="due-line-text">
-              <strong>{{ d.headName }}</strong>
-              <span>{{ d.periodLabel }} · @if (d.daysLate > 0) { <em class="late">{{ d.daysLate }} days late</em> } @else { due {{ niceDate(d.dueDate) }} }</span>
-            </span>
-            <strong>{{ rupees(d.amount) }}</strong>
-          </label>
-        } @else {
-          <div class="due-line paid">
-            <span class="paid-tick"><app-icon name="check" [size]="14" [stroke]="2.4" /></span>
-            <span class="due-line-text">
-              <strong>{{ d.headName }}</strong>
-              <span>{{ d.periodLabel }} · paid {{ niceDate(d.paidOn!) }} by {{ d.mode }}</span>
-            </span>
-            <strong>{{ rupees(d.paidAmount ?? d.amount) }}</strong>
-          </div>
-        }
-      }
-    </div>
-
-    @if (r.pending > 0) {
-      <form class="stack" (ngSubmit)="recordPayment()" novalidate>
-        <span class="label">Record payment received</span>
-        <div class="grid-2">
-          <div class="seg" role="radiogroup" aria-label="Payment mode">
-            @for (m of ['Cash', 'UPI']; track m) {
-              <button type="button" role="radio" [class.on]="payMode() === m" [attr.aria-checked]="payMode() === m"
-                      (click)="payMode.set($any(m))">{{ m }}</button>
-            }
-          </div>
-          <div class="field">
-            <label class="sr-only" for="pay-date">Date received</label>
-            <input id="pay-date" class="input" type="date" name="date" [max]="today" [ngModel]="payDate()" (ngModelChange)="payDate.set($event)">
-          </div>
-        </div>
-        @if (sheetError()) { <span class="error-text" role="alert">{{ sheetError() }}</span> }
-        <button type="submit" class="btn btn-primary lg block" [disabled]="saving() || ticked().size === 0">
-          {{ saving() ? 'Saving…' : 'Mark ' + rupees(tickedTotal()) + ' as paid' }}
-        </button>
-        <button type="button" class="btn btn-outline lg block" (click)="remind(r)">
-          <app-icon name="whatsapp" [size]="18" /> Send reminder instead
-        </button>
-      </form>
-    } @else {
-      <div class="note ok"><app-icon name="check" [size]="18" [stroke]="2.2" /> All paid for this period</div>
-    }
-  </app-bottom-sheet>
+  <app-payment-sheet [studentId]="r.studentId" [studentName]="r.studentName" [batchName]="r.batchName"
+                     [dues]="r.dues" (closed)="onSheetClosed($event)" />
 }

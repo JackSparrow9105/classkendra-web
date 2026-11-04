@@ -159,3 +159,10 @@
     display: none;
   }
 }
+
+.report-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+}

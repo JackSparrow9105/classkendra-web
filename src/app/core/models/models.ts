@@ -66,6 +66,21 @@ export interface Student {
   active: boolean;
   /** Optional fee heads this student has opted into, e.g. school transport. */
   optionalHeadIds: string[];
+  /** Discounts this student gets. In SQL this is its own StudentConcessions table. */
+  concessions: Concession[];
+}
+
+export type ConcessionReason = 'Sibling' | 'Staff child' | 'Scholarship' | 'Other';
+
+export interface Concession {
+  id: string;
+  reason: ConcessionReason;
+  note: string;
+  /** null = applies to every fee head. */
+  feeHeadId: string | null;
+  kind: 'Percent' | 'Amount';
+  /** 10 = 10% (Percent) or ₹10 off each bill (Amount). */
+  value: number;
 }
 
 export type FeeFrequency = 'Monthly' | 'Quarterly' | 'HalfYearly' | 'Yearly' | 'OneTime';
@@ -91,9 +106,10 @@ export interface FeeSettings {
   remindAfter: boolean;
 }
 
-export type FeeStatus = 'Pending' | 'Paid';
-export type PaymentMode = 'Cash' | 'UPI' | 'Online';
+export type FeeStatus = 'Pending' | 'Partial' | 'Paid';
+export type PaymentMode = 'Cash' | 'UPI' | 'Cheque' | 'Online';
 
+/** One bill line: a fee head for a period. Money received is tracked in Payments, not here. */
 export interface FeeDue {
   id: string;
   studentId: string;
@@ -106,12 +122,17 @@ export interface FeeDue {
   periodLabel: string;
   /** The month this due was raised in (YYYY-MM); used to filter by month. */
   month: string;
+  /** Fee before discount. */
+  grossAmount: number;
+  /** Concession applied when the bill was raised. */
+  discount: number;
+  /** What the parent owes for this line: grossAmount - discount. */
   amount: number;
+  /** Sum of payment allocations against this line. */
+  paidAmount: number;
   dueDate: string;
   status: FeeStatus;
-  paidOn: string | null;
-  paidAmount: number | null;
-  mode: PaymentMode | null;
+  lastPaidOn: string | null;
   remindersSent: number;
 }
 
@@ -119,6 +140,50 @@ export interface FeeDueView extends FeeDue {
   studentName: string;
   batchName: string;
   daysLate: number;
+  /** amount - paidAmount */
+  balance: number;
+}
+
+/** Money received once, with one receipt. It can cover several dues, fully or in part. */
+export interface Payment {
+  id: string;
+  /** "R-2026-0001": sequence per tenant per session. */
+  receiptNo: string;
+  studentId: string;
+  amount: number;
+  mode: PaymentMode;
+  paidOn: string;
+  note: string;
+  receivedBy: string;
+  allocations: { dueId: string; headName: string; periodLabel: string; amount: number }[];
+}
+
+export interface PaymentView extends Payment {
+  studentName: string;
+  batchName: string;
+  parentPhone: string;
+  /** What the student still owes after this payment. */
+  balanceAfter: number;
+}
+
+export interface StudentFeeHistory {
+  student: Student;
+  batchName: string;
+  dues: FeeDueView[];
+  payments: PaymentView[];
+  balance: number;
+  paidThisSession: number;
+}
+
+export interface CollectionReport {
+  month: string;
+  collected: number;
+  receiptCount: number;
+  discountGiven: number;
+  byMode: { mode: PaymentMode; amount: number; count: number }[];
+  byGroup: { batchId: string; name: string; collected: number; pending: number }[];
+  byHead: { headName: string; collected: number }[];
+  payments: PaymentView[];
 }
 
 /** One row per student on the Fees screen (what GET /fees returns). */
@@ -141,9 +206,14 @@ export interface FeeSetupRequest {
 }
 
 export interface RecordPaymentRequest {
+  studentId: string;
+  /** Dues the parent is paying for; the amount is spread over them, oldest first. */
   dueIds: string[];
+  /** Can be less than the total (part payment), never more. */
+  amount: number;
   mode: PaymentMode;
   paidOn: string;
+  note: string;
 }
 
 export interface StaffMember {

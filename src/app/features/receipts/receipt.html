@@ -1,0 +1,63 @@
+<div class="page">
+  <header class="page-head no-print">
+    <div class="row">
+      @if (p(); as r) {
+        <a [routerLink]="['/students', r.studentId]" class="icon-btn" aria-label="Back to student"><app-icon name="chevron-left" /></a>
+      }
+      <h1 class="page-title">Receipt</h1>
+    </div>
+  </header>
+
+  @if (p(); as r) {
+    <article class="receipt" aria-label="Fee receipt">
+      <header class="r-head">
+        <div>
+          <strong class="org">{{ centre.centre()?.name }}</strong>
+          @if (centre.centre()?.city) { <span class="muted">{{ centre.centre()?.city }}</span> }
+        </div>
+        <div class="r-no">
+          <span class="muted">Fee receipt</span>
+          <strong>{{ r.receiptNo }}</strong>
+        </div>
+      </header>
+
+      <dl class="r-meta">
+        <div><dt>Date</dt><dd>{{ longDate(r.paidOn) }}</dd></div>
+        <div><dt>Student</dt><dd>{{ r.studentName }}</dd></div>
+        <div><dt>{{ labels.l().group }}</dt><dd>{{ r.batchName }}</dd></div>
+        <div><dt>Paid by</dt><dd>{{ r.mode }}@if (r.note) { · {{ r.note }} }</dd></div>
+      </dl>
+
+      <table class="r-table">
+        <thead><tr><th scope="col">Fee</th><th scope="col">Period</th><th scope="col" class="num">Amount</th></tr></thead>
+        <tbody>
+          @for (a of r.allocations; track a.dueId) {
+            <tr><td>{{ a.headName }}</td><td>{{ a.periodLabel }}</td><td class="num">{{ rupees(a.amount) }}</td></tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr><th scope="row" colspan="2">Total paid</th><td class="num total">{{ rupees(r.amount) }}</td></tr>
+        </tfoot>
+      </table>
+
+      <div class="r-foot">
+        @if (r.balanceAfter > 0) {
+          <span class="badge warn">Balance due {{ rupees(r.balanceAfter) }}</span>
+        } @else {
+          <span class="badge ok">No balance due</span>
+        }
+        <span class="muted">Received by {{ r.receivedBy }}</span>
+      </div>
+      <p class="r-note muted">This is a computer-generated receipt and does not need a signature.</p>
+    </article>
+
+    <div class="stack no-print">
+      <a class="btn btn-primary lg block" [href]="whatsappUrl()" target="_blank" rel="noopener">
+        <app-icon name="whatsapp" [size]="18" /> Share on WhatsApp
+      </a>
+      <button type="button" class="btn btn-outline lg block" (click)="print()">
+        <app-icon name="file" [size]="18" /> Print or save as PDF
+      </button>
+    </div>
+  }
+</div>

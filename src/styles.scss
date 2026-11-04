@@ -710,6 +710,31 @@ select.input {
   }
 }
 
+/* Printing a receipt or report: hide navigation and buttons. */
+@media print {
+  app-shell aside,
+  app-shell nav,
+  app-toast,
+  .no-print,
+  .action-bar {
+    display: none !important;
+  }
+
+  app-shell main {
+    margin: 0 !important;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+}
+
 @media (min-width: 960px) {
   :root {
     --nav-h: 0px;

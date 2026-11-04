@@ -17,6 +17,11 @@ export class ApiService {
     return this.http.get<T>(`${this.base}/${path}`, { params: p });
   }
 
+  /** For file downloads such as the Excel report. */
+  getBlob(path: string, params?: Record<string, string>): Observable<Blob> {
+    return this.http.get(`${this.base}/${path}`, { params, responseType: 'blob' });
+  }
+
   post<T>(path: string, body: unknown = {}): Observable<T> {
     return this.http.post<T>(`${this.base}/${path}`, body);
   }

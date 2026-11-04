@@ -54,7 +54,7 @@
     @if (d.feesConfigured) {
       <section class="hero" aria-label="Fees this month">
         <div class="row" style="justify-content: space-between">
-          <span class="hero-label">Collected in {{ monthName(d.month) }}</span>
+          <a routerLink="/reports" class="hero-label report-link">Collected in {{ monthName(d.month) }} <app-icon name="chevron-right" [size]="14" /></a>
           <span class="pct">{{ collectedPct() }}% of {{ rupees(d.expected) }}</span>
         </div>
         <span class="hero-amount">{{ rupees(d.collected) }}</span>

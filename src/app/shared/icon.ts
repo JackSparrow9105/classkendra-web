@@ -4,7 +4,7 @@ export type IconName =
   | 'home' | 'wallet' | 'calendar-check' | 'users' | 'settings' | 'bell' | 'search'
   | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'check' | 'plus' | 'edit'
   | 'whatsapp' | 'cap' | 'upload' | 'phone' | 'info' | 'lock' | 'logout' | 'crown'
-  | 'user-plus' | 'x' | 'file' | 'trash';
+  | 'user-plus' | 'x' | 'file' | 'trash' | 'download' | 'chart';
 
 /** Outline icons drawn inline so they inherit the text colour. */
 @Component({
@@ -39,6 +39,8 @@ export type IconName =
         @case ('user-plus') { <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/> }
         @case ('x') { <path d="M18 6 6 18M6 6l12 12"/> }
         @case ('file') { <path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/> }
+        @case ('download') { <path d="M12 4v12M7 11l5 5 5-5M4 20h16"/> }
+        @case ('chart') { <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/> }
         @case ('trash') { <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/> }
       }
     </svg>

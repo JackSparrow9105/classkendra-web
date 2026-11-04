@@ -1,0 +1,86 @@
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar.lg {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  font-size: 16px;
+}
+
+.profile-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    font-size: 13px;
+    color: var(--muted);
+  }
+}
+
+.warn-text {
+  color: var(--warn-dark);
+}
+
+.actions {
+  gap: 10px;
+
+  .btn-primary {
+    flex: 1;
+  }
+}
+
+.h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.empty-line {
+  margin: 0;
+  font-size: 13px;
+}
+
+.amount-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.row-link {
+  color: var(--ink);
+  text-decoration: none;
+
+  > app-icon {
+    color: var(--muted);
+  }
+}
+
+fieldset.plain {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+
+  legend {
+    padding: 0;
+    margin-bottom: 10px;
+  }
+}
+
+.small {
+  font-size: 12px;
+  margin: 0;
+}

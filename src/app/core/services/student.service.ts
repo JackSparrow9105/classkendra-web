@@ -2,11 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
-import { Student, StudentImportRow } from '../models/models';
+import { Concession, Student, StudentImportRow } from '../models/models';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
-export type StudentInput = Omit<Student, 'id' | 'active'>;
+/** Concessions are managed through their own endpoints, so they're not part of the student form. */
+export type StudentInput = Omit<Student, 'id' | 'active' | 'concessions'>;
 
 export interface ImportResult {
   added: number;
@@ -49,7 +50,7 @@ export class StudentService {
       (s) => s.active && s.parentPhone === input.parentPhone && s.name.toLowerCase() === input.name.toLowerCase(),
     );
     if (dup) return this.mock.fail(`${input.name} is already added with this number.`);
-    const student: Student = { id: this.mock.id('stu'), ...input, active: true };
+    const student: Student = { id: this.mock.id('stu'), ...input, active: true, concessions: [] };
     this.mock.update((s) => s.students.push(student));
     this.mock.ensureDues();
     return this.mock.respond(student);
@@ -64,7 +65,7 @@ export class StudentService {
       // Opted out of an optional fee (e.g. stopped using transport): cancel its unpaid dues.
       const optionalIds = new Set(s.heads.filter((h) => h.optional).map((h) => h.id));
       s.dues = s.dues.filter(
-        (d) => !(d.studentId === id && d.status === 'Pending' && optionalIds.has(d.feeHeadId) && !input.optionalHeadIds.includes(d.feeHeadId)),
+        (d) => !(d.studentId === id && d.paidAmount === 0 && optionalIds.has(d.feeHeadId) && !input.optionalHeadIds.includes(d.feeHeadId)),
       );
     });
     this.mock.ensureDues();
@@ -77,9 +78,28 @@ export class StudentService {
     this.mock.update((s) => {
       const st = s.students.find((x) => x.id === id);
       if (st) st.active = false;
-      s.dues = s.dues.filter((d) => !(d.studentId === id && d.status === 'Pending'));
+      s.dues = s.dues.filter((d) => !(d.studentId === id && d.paidAmount === 0));
     });
     return this.mock.respond(undefined);
+  }
+
+  /** POST /students/{id}/concessions — unpaid bills are re-priced straight away. */
+  addConcession(studentId: string, c: Omit<Concession, 'id'>): Observable<Student> {
+    if (!environment.useMock) return this.api.post<Student>(`students/${studentId}/concessions`, c);
+    this.mock.update((s) => s.students.find((x) => x.id === studentId)?.concessions.push({ id: this.mock.id('con'), ...c }));
+    this.mock.repriceUnpaid(studentId);
+    return this.mock.respond(this.mock.snapshot.students.find((x) => x.id === studentId)!);
+  }
+
+  /** DELETE /students/{id}/concessions/{concessionId} */
+  removeConcession(studentId: string, concessionId: string): Observable<Student> {
+    if (!environment.useMock) return this.api.delete<Student>(`students/${studentId}/concessions/${concessionId}`);
+    this.mock.update((s) => {
+      const st = s.students.find((x) => x.id === studentId);
+      if (st) st.concessions = st.concessions.filter((c) => c.id !== concessionId);
+    });
+    this.mock.repriceUnpaid(studentId);
+    return this.mock.respond(this.mock.snapshot.students.find((x) => x.id === studentId)!);
   }
 
   /** POST /students/import — the real API accepts the .xlsx file (multipart) and parses it server-side. */
@@ -105,6 +125,7 @@ export class StudentService {
           joinedOn: new Date().toISOString().slice(0, 10),
           active: true,
           optionalHeadIds: [],
+          concessions: [],
         });
         result.added++;
         return;

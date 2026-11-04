@@ -1,0 +1,100 @@
+<app-bottom-sheet [title]="studentName()" (closed)="close()">
+  @if (receipt(); as r) {
+    <div class="done">
+      <span class="done-icon"><app-icon name="check" [size]="28" [stroke]="2.4" /></span>
+      <strong class="done-amount">{{ rupees(r.amount) }} received</strong>
+      <span class="muted">Receipt {{ r.receiptNo }} · {{ r.mode }} · {{ niceDate(r.paidOn) }}</span>
+      @if (r.balanceAfter > 0) {
+        <span class="badge warn">{{ rupees(r.balanceAfter) }} still due</span>
+      } @else {
+        <span class="badge ok">Nothing left to pay</span>
+      }
+      <span class="muted small">The receipt is being sent to the parent on WhatsApp.</span>
+    </div>
+    <a class="btn btn-primary lg block" [routerLink]="['/receipts', r.id]" (click)="close()">View or print receipt</a>
+    <button type="button" class="btn btn-outline lg block" (click)="close()">Done</button>
+  } @else {
+    @if (batchName()) { <span class="muted sub">{{ batchName() }}</span> }
+
+    @if (openDues().length === 0) {
+      <div class="note ok"><app-icon name="check" [size]="18" [stroke]="2.2" /> All paid</div>
+    } @else {
+      <div class="lines" role="group" aria-label="Fees to pay">
+        @for (d of openDues(); track d.id) {
+          <label class="line">
+            <input type="checkbox" [checked]="ticked().has(d.id)" (change)="toggle(d.id)">
+            <span class="line-text">
+              <strong>{{ d.headName }}</strong>
+              <span>
+                {{ d.periodLabel }} ·
+                @if (d.daysLate > 0) { <em class="late">{{ d.daysLate }} days late</em> } @else { due {{ niceDate(d.dueDate) }} }
+              </span>
+              @if (d.paidAmount > 0) { <span class="part">{{ rupees(d.paidAmount) }} of {{ rupees(d.amount) }} paid</span> }
+              @if (d.discount > 0) { <span class="disc">{{ rupees(d.discount) }} discount applied</span> }
+            </span>
+            <strong>{{ rupees(d.balance) }}</strong>
+          </label>
+        }
+      </div>
+
+      <form class="stack" (ngSubmit)="save()" novalidate>
+        <div class="field">
+          <label class="label" for="pay-amount">Amount received</label>
+          <div class="input-group">
+            <span class="prefix">₹</span>
+            <input id="pay-amount" name="amount" type="text" inputmode="numeric"
+                   [placeholder]="tickedBalance().toString()" [ngModel]="amountText()" (ngModelChange)="setAmount($event)">
+          </div>
+          @if (isPart()) {
+            <span class="hint warn-text">Part payment: {{ rupees(tickedBalance() - amount()) }} will stay due.</span>
+          } @else {
+            <span class="hint muted">Full amount {{ rupees(tickedBalance()) }}. Enter less for a part payment.</span>
+          }
+        </div>
+
+        <div class="seg" role="radiogroup" aria-label="Payment mode">
+          @for (m of modes; track m) {
+            <button type="button" role="radio" [class.on]="mode() === m" [attr.aria-checked]="mode() === m" (click)="mode.set(m)">{{ m }}</button>
+          }
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label class="label" for="pay-date">Date</label>
+            <input id="pay-date" name="date" class="input" type="date" [max]="today" [ngModel]="paidOn()" (ngModelChange)="paidOn.set($event)">
+          </div>
+          <div class="field">
+            <label class="label" for="pay-note">Note <span class="muted" style="font-weight: 400">optional</span></label>
+            <input id="pay-note" name="note" class="input" [placeholder]="mode() === 'Cheque' ? 'Cheque no.' : 'e.g. paid by father'"
+                   [ngModel]="note()" (ngModelChange)="note.set($event)">
+          </div>
+        </div>
+
+        @if (error()) { <span class="error-text" role="alert">{{ error() }}</span> }
+
+        <button type="submit" class="btn btn-primary lg block" [disabled]="saving() || amount() <= 0">
+          {{ saving() ? 'Saving…' : 'Record ' + rupees(amount()) + (isPart() ? ' (part)' : '') }}
+        </button>
+        <button type="button" class="btn btn-outline lg block" (click)="remind()">
+          <app-icon name="whatsapp" [size]="18" /> Send reminder instead
+        </button>
+      </form>
+    }
+
+    @if (paidDues().length > 0) {
+      <details class="paid-list">
+        <summary>{{ paidDues().length }} paid {{ paidDues().length === 1 ? 'fee' : 'fees' }}</summary>
+        @for (d of paidDues(); track d.id) {
+          <div class="line paid">
+            <span class="paid-tick"><app-icon name="check" [size]="14" [stroke]="2.4" /></span>
+            <span class="line-text">
+              <strong>{{ d.headName }}</strong>
+              <span>{{ d.periodLabel }} · paid {{ d.lastPaidOn ? niceDate(d.lastPaidOn) : '' }}</span>
+            </span>
+            <strong>{{ rupees(d.amount) }}</strong>
+          </div>
+        }
+      </details>
+    }
+  }
+</app-bottom-sheet>

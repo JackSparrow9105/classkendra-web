@@ -1,0 +1,104 @@
+.receipt {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.r-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--border-strong);
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .org {
+    font-size: 18px;
+  }
+
+  span {
+    font-size: 12px;
+  }
+}
+
+.r-no {
+  text-align: right;
+
+  strong {
+    font-size: 15px;
+  }
+}
+
+.r-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+
+  dt {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
+
+.r-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--divider);
+  }
+
+  thead th {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .num {
+    text-align: right;
+  }
+
+  tfoot th,
+  tfoot td {
+    border-bottom: none;
+    font-weight: 700;
+  }
+
+  .total {
+    font-size: 18px;
+  }
+}
+
+.r-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.r-note {
+  margin: 0;
+  font-size: 11px;
+  text-align: center;
+}

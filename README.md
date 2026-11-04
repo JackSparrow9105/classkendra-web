@@ -42,6 +42,13 @@ All wording that differs ("Batch" / "Class", "Centre" / "School") lives in `src/
 
 "Opted in" heads (transport) are charged only to students ticked on their profile. The API's nightly due job must follow the same rules.
 
+### Discounts, part payments and receipts
+
+- **Concessions** (`core/fees/concessions.ts`): per student, reason (sibling, staff child, scholarship, other), % or fixed ₹ per bill, for one fee head or all. Applied when a bill is raised; each bill stores `grossAmount`, `discount` and `amount` (net). Adding or removing a concession re-prices that student's bills that have no money against them yet. A 100% concession raises no bill.
+- **Payments**: money received is a `Payment` with a receipt number (`R-2026-0001`, running per session) and allocations to bills, applied oldest first. A bill is `Pending`, `Partial` or `Paid`. Never store "paid" only on the bill: the Payments and PaymentAllocations tables are the record.
+- **Receipts**: `/receipts/:id`, printable (browser print or save as PDF) and shareable on WhatsApp.
+- **Collection report**: `/reports`; collected = money received in the month (by receipt date), pending = balance still owed on bills up to that month. Excel has Summary, By class/batch and Receipts sheets.
+
 ### Roles
 
 | | Owner | Office staff | Teacher |
@@ -64,6 +71,9 @@ The API must enforce these too (filter by the teacher's `batchIds`); the UI hidi
 | Add students other ways | `/students/import` | One by one (default), CSV upload, or "send us your register" on WhatsApp |
 | Fee setup | `/fees/setup` | Fee heads (frequency, everyone or opted-in, amount per batch/class), due day, session start, reminders, message preview |
 | Fees | `/fees` | One row per student; Pending / Paid / All, month, class filter; tick which heads were paid; "Remind all" |
+| Student page | `/students/:id` | Balance, discounts, every fee this session, receipts; record payment or remind |
+| Receipt | `/receipts/:id` | Printable receipt with receipt number; share on WhatsApp |
+| Collection report | `/reports` | Month totals by mode, fee and class, receipt list, Excel download |
 | Staff | `/staff` | Add office staff or teachers (with their classes); they sign in with their own number |
 | Attendance | `/attendance` | Everyone present by default, tap absentees, save alerts parents |
 | Plans | `/plans` | Trial status, message usage, monthly/yearly plans |
@@ -119,7 +129,11 @@ src/environments/environment.ts  ← useMock + apiUrl
 | GET / PUT | `/fees/setup` | `{ settings, heads }` — heads not in the PUT are deleted, their unpaid dues cancelled |
 | GET | `/fees?month=&status=&search=&batchId=` | one `StudentFees` row per student (Pending includes older unpaid months) |
 | POST | `/fees/remind` `{ studentIds }` · `/fees/remind-all?month=` | one WhatsApp per family listing what's unpaid → Notifications outbox |
-| POST | `/fees/payments` `{ dueIds, mode, paidOn }` | record cash/UPI payment for the ticked dues |
+| POST | `/payments` `{ studentId, dueIds, amount, mode, paidOn, note }` | record a full or part payment; returns the receipt (`PaymentView`) |
+| GET | `/payments/{id}` | one receipt |
+| GET | `/students/{id}/fees` | student fee history: bills, receipts, balance |
+| POST / DELETE | `/students/{id}/concessions` · `/students/{id}/concessions/{cid}` | add or remove a discount |
+| GET | `/reports/collection?month=` · `/reports/collection.xlsx?month=` | collection report and its Excel file (build with ClosedXML) |
 | GET / POST | `/staff` · PUT / DELETE `/staff/{id}` | office staff and teachers |
 | GET / POST | `/attendance/{batchId}?date=` | attendance (save alerts only newly absent students) |
 | GET | `/dashboard` | dashboard summary |

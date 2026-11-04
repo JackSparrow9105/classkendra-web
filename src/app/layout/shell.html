@@ -16,6 +16,11 @@
       </a>
     }
     @if (!auth.isTeacher()) {
+      <a routerLink="/reports" routerLinkActive="active" #rlr="routerLinkActive"
+         [attr.aria-current]="rlr.isActive ? 'page' : null">
+        <app-icon name="chart" />
+        Reports
+      </a>
       <a routerLink="/settings" routerLinkActive="active" #rls="routerLinkActive"
          [attr.aria-current]="rls.isActive ? 'page' : null">
         <app-icon name="settings" />

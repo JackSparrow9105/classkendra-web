@@ -1,0 +1,157 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row" style="min-width: 0">
+      <a routerLink="/students" class="icon-btn" aria-label="Back to students"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title ellipsis">{{ data()?.student?.name }}</h1>
+    </div>
+    <a [routerLink]="['/students', id(), 'edit']" class="btn btn-outline sm"><app-icon name="edit" [size]="16" /> Edit</a>
+  </header>
+
+  @if (data(); as d) {
+    <section class="profile">
+      <span class="avatar accent lg">{{ initials(d.student.name) }}</span>
+      <div class="profile-text">
+        <strong>{{ d.batchName }}</strong>
+        <span>{{ d.student.parentName || 'Parent' }} · +91 {{ formatPhone(d.student.parentPhone) }}</span>
+      </div>
+      <a class="icon-btn" [href]="'tel:+91' + d.student.parentPhone" aria-label="Call parent"><app-icon name="phone" [size]="18" /></a>
+    </section>
+
+    <div class="grid-2">
+      <div class="card stat">
+        <span class="stat-label">Balance due</span>
+        <span class="stat-value" [class.warn-text]="d.balance > 0">{{ rupees(d.balance) }}</span>
+        <span class="stat-note">{{ openDues().length }} unpaid {{ openDues().length === 1 ? 'fee' : 'fees' }}</span>
+      </div>
+      <div class="card stat">
+        <span class="stat-label">Paid this session</span>
+        <span class="stat-value">{{ rupees(d.paidThisSession) }}</span>
+        <span class="stat-note">{{ d.payments.length }} {{ d.payments.length === 1 ? 'receipt' : 'receipts' }}</span>
+      </div>
+    </div>
+
+    @if (d.balance > 0) {
+      <div class="row actions">
+        <button type="button" class="btn btn-primary lg" (click)="paying.set(true)">Record payment</button>
+        <button type="button" class="btn btn-outline lg" (click)="remind()" aria-label="Send WhatsApp reminder">
+          <app-icon name="whatsapp" [size]="18" /> Remind
+        </button>
+      </div>
+    }
+
+    <section class="stack">
+      <div class="section-title">
+        <h2 class="h2">Discounts</h2>
+        <button type="button" class="btn btn-ghost sm" (click)="openDiscount()"><app-icon name="plus" [size]="16" [stroke]="2" /> Add</button>
+      </div>
+      @if (d.student.concessions.length === 0) {
+        <p class="muted empty-line">No discounts. Add one for siblings, staff children or scholarships.</p>
+      } @else {
+        <div class="card card--list">
+          @for (c of d.student.concessions; track c.id) {
+            <div class="list-row">
+              <span class="avatar ok"><app-icon name="check" [size]="16" [stroke]="2.2" /></span>
+              <div class="list-main">
+                <span class="list-title">{{ c.reason }} · {{ describe(c) }}</span>
+                @if (c.note) { <span class="list-sub">{{ c.note }}</span> }
+              </div>
+              <button type="button" class="icon-btn plain" [attr.aria-label]="'Remove discount ' + describe(c)" (click)="removeDiscount(c)">
+                <app-icon name="trash" [size]="18" />
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="stack">
+      <h2 class="h2">Fees this session</h2>
+      @if (d.dues.length === 0) {
+        <p class="muted empty-line">No fees raised yet.</p>
+      } @else {
+        <div class="card card--list">
+          @for (f of d.dues; track f.id) {
+            <div class="list-row">
+              <div class="list-main">
+                <span class="list-title">{{ f.headName }}</span>
+                <span class="list-sub">{{ f.periodLabel }}@if (f.discount > 0) { · {{ rupees(f.discount) }} discount }</span>
+              </div>
+              <div class="amount-col">
+                <strong>{{ rupees(f.amount) }}</strong>
+                <span [class]="'badge ' + statusClass(f)">{{ statusLabel(f) }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="stack">
+      <h2 class="h2">Receipts</h2>
+      @if (d.payments.length === 0) {
+        <p class="muted empty-line">No payments yet.</p>
+      } @else {
+        <div class="card card--list">
+          @for (p of d.payments; track p.id) {
+            <a class="list-row row-link" [routerLink]="['/receipts', p.id]">
+              <span class="avatar"><app-icon name="file" [size]="18" /></span>
+              <div class="list-main">
+                <span class="list-title">{{ p.receiptNo }}</span>
+                <span class="list-sub">{{ niceDate(p.paidOn) }} · {{ p.mode }} · {{ p.allocations.length }} {{ p.allocations.length === 1 ? 'fee' : 'fees' }}</span>
+              </div>
+              <strong>{{ rupees(p.amount) }}</strong>
+              <app-icon name="chevron-right" [size]="18" />
+            </a>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>
+
+@if (paying() && data(); as d) {
+  <app-payment-sheet [studentId]="d.student.id" [studentName]="d.student.name" [batchName]="d.batchName"
+                     [dues]="openDues()" (closed)="onPaid($event)" />
+}
+
+@if (addingDiscount()) {
+  <app-bottom-sheet title="Add discount" (closed)="addingDiscount.set(false)">
+    <form class="stack" (ngSubmit)="saveDiscount()" novalidate style="gap: 14px">
+      <fieldset class="plain">
+        <legend class="label">Reason</legend>
+        <div class="chips wrap">
+          @for (r of reasons; track r) {
+            <button type="button" class="chip" [class.on]="reason() === r" [attr.aria-pressed]="reason() === r" (click)="reason.set(r)">{{ r }}</button>
+          }
+        </div>
+      </fieldset>
+      <div class="field">
+        <label class="label" for="d-head">Applies to</label>
+        <select id="d-head" name="head" class="input" [ngModel]="headId()" (ngModelChange)="headId.set($event)">
+          <option value="">All fees</option>
+          @for (h of heads(); track h.id) { <option [value]="h.id">{{ h.name }}</option> }
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="seg" role="radiogroup" aria-label="Discount type">
+          <button type="button" role="radio" [class.on]="kind() === 'Percent'" [attr.aria-checked]="kind() === 'Percent'" (click)="kind.set('Percent')">%</button>
+          <button type="button" role="radio" [class.on]="kind() === 'Amount'" [attr.aria-checked]="kind() === 'Amount'" (click)="kind.set('Amount')">₹ per bill</button>
+        </div>
+        <div class="field">
+          <label class="sr-only" for="d-value">Discount</label>
+          <div class="input-group">
+            <span class="prefix">{{ kind() === 'Percent' ? '%' : '₹' }}</span>
+            <input id="d-value" name="value" type="text" inputmode="numeric" placeholder="10" [ngModel]="value()" (ngModelChange)="setValue($event)">
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label" for="d-note">Note <span class="muted" style="font-weight: 400">optional</span></label>
+        <input id="d-note" name="note" class="input" placeholder="e.g. Sister in Class 5 · B" [ngModel]="note()" (ngModelChange)="note.set($event)">
+      </div>
+      <p class="muted small">Unpaid fees are updated straight away. Fees already paid (even partly) stay as they are.</p>
+      @if (discountError()) { <div class="note warn" role="alert">{{ discountError() }}</div> }
+      <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">Add discount</button>
+    </form>
+  </app-bottom-sheet>
+}

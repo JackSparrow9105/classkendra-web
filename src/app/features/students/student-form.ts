@@ -131,7 +131,7 @@ export class StudentForm {
           document.getElementById('s-name')?.focus();
         } else {
           this.toast.show(id ? 'Changes saved' : `${s.name} added`);
-          this.router.navigateByUrl('/students');
+          this.router.navigateByUrl(id ? `/students/${id}` : '/students');
         }
       },
       error: (e) => {

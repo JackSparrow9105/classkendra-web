@@ -1,0 +1,92 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row">
+      <a routerLink="/dashboard" class="icon-btn mobile-only no-print" aria-label="Back"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">Collection report</h1>
+    </div>
+    <label for="r-month" class="sr-only">Month</label>
+    <select id="r-month" class="input month-select no-print" [ngModel]="month()" (ngModelChange)="setMonth($event)">
+      @for (m of months; track m) { <option [value]="m">{{ monthName(m).slice(0, 3) }} {{ m.slice(0, 4) }}</option> }
+    </select>
+  </header>
+
+  @if (report(); as r) {
+    <section class="hero">
+      <span class="hero-label">Collected in {{ monthName(r.month) }}</span>
+      <span class="hero-amount">{{ rupees(r.collected) }}</span>
+      <span class="hero-label">{{ r.receiptCount }} receipts @if (r.discountGiven > 0) { · {{ rupees(r.discountGiven) }} given as discounts }</span>
+    </section>
+
+    <button type="button" class="btn btn-dark lg block no-print" [disabled]="downloading() || r.receiptCount === 0" (click)="download()">
+      <app-icon name="download" [size]="18" /> {{ downloading() ? 'Preparing…' : 'Download Excel' }}
+    </button>
+
+    @if (r.receiptCount === 0) {
+      <div class="card empty">No payments recorded in {{ monthName(r.month) }}.</div>
+    } @else {
+      <section class="card stack">
+        <h2 class="h2">By payment mode</h2>
+        @for (m of r.byMode; track m.mode) {
+          <div class="bar-row">
+            <div class="bar-label"><span>{{ m.mode }}</span><span class="muted">{{ m.count }} {{ m.count === 1 ? 'receipt' : 'receipts' }}</span></div>
+            <div class="bar"><span [style.width.%]="(m.amount / maxMode()) * 100"></span></div>
+            <strong>{{ rupees(m.amount) }}</strong>
+          </div>
+        }
+      </section>
+
+      <section class="card stack">
+        <h2 class="h2">By fee</h2>
+        @for (h of r.byHead; track h.headName) {
+          <div class="bar-row">
+            <div class="bar-label"><span>{{ h.headName }}</span></div>
+            <div class="bar alt"><span [style.width.%]="(h.collected / maxHead()) * 100"></span></div>
+            <strong>{{ rupees(h.collected) }}</strong>
+          </div>
+        }
+      </section>
+    }
+
+    <section class="card stack">
+      <h2 class="h2">By {{ labels.l().groupLower }}</h2>
+      <div class="table-box">
+        <table class="r-table">
+          <thead>
+            <tr><th scope="col">{{ labels.l().group }}</th><th scope="col" class="num">Collected</th><th scope="col" class="num">Still pending</th></tr>
+          </thead>
+          <tbody>
+            @for (g of groupsWithActivity(); track g.batchId) {
+              <tr>
+                <td>{{ g.name }}</td>
+                <td class="num">{{ rupees(g.collected) }}</td>
+                <td class="num" [class.warn-text]="g.pending > 0">{{ rupees(g.pending) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    @if (r.payments.length > 0) {
+      <section class="stack">
+        <h2 class="h2">Receipts</h2>
+        <div class="card card--list">
+          @for (p of receipts(); track p.id) {
+            <a class="list-row row-link" [routerLink]="['/receipts', p.id]">
+              <div class="list-main">
+                <span class="list-title">{{ p.studentName }}</span>
+                <span class="list-sub">{{ p.receiptNo }} · {{ niceDate(p.paidOn) }} · {{ p.mode }}</span>
+              </div>
+              <strong>{{ rupees(p.amount) }}</strong>
+            </a>
+          }
+        </div>
+        @if (!showAllReceipts() && r.payments.length > 8) {
+          <button type="button" class="btn btn-ghost no-print" (click)="showAllReceipts.set(true)">Show all {{ r.payments.length }} receipts</button>
+        }
+      </section>
+    }
+  } @else {
+    <p class="muted">Loading…</p>
+  }
+</div>

@@ -1,7 +1,7 @@
 <form class="page" [formGroup]="form" (ngSubmit)="save(false)" novalidate>
   <header class="page-head">
     <div class="row">
-      <a routerLink="/students" class="icon-btn" aria-label="Back to students"><app-icon name="chevron-left" /></a>
+      <a [routerLink]="isEdit() ? ['/students', id()] : '/students'" class="icon-btn" aria-label="Back"><app-icon name="chevron-left" /></a>
       <h1 class="page-title">{{ isEdit() ? 'Edit student' : 'Add student' }}</h1>
     </div>
     @if (addedCount() > 0) {

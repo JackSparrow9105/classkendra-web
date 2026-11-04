@@ -1,0 +1,129 @@
+.sub {
+  font-size: 13px;
+  margin-top: -10px;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 14px;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  &.paid {
+    cursor: default;
+    color: var(--muted);
+  }
+}
+
+.line-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .part {
+    color: var(--warn-dark);
+    font-weight: 600;
+  }
+
+  .disc {
+    color: var(--ok-dark);
+  }
+}
+
+.late {
+  font-style: normal;
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.hint {
+  font-size: 12px;
+}
+
+.warn-text {
+  color: var(--warn-dark);
+  font-weight: 600;
+}
+
+.paid-tick {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--ok-tint);
+  color: var(--ok-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.paid-list {
+  border-top: 1px solid var(--divider);
+  padding-top: 8px;
+
+  summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+    padding: 6px 0;
+  }
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 12px 0 4px;
+}
+
+.done-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  background: var(--ok-tint);
+  color: var(--ok-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.done-amount {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}

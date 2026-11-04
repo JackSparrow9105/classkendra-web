@@ -8,10 +8,13 @@ import {
   FeeDue,
   FeeHead,
   FeeSettings,
+  Payment,
+  PaymentMode,
   StaffMember,
   Student,
 } from '../models/models';
-import { isDueIn, periodFor } from '../fees/schedule';
+import { discountFor } from '../fees/concessions';
+import { isDueIn, periodFor, sessionYear } from '../fees/schedule';
 import { schoolGroupName } from '../labels';
 import { isoDate, monthKey } from '../../shared/format';
 
@@ -29,12 +32,15 @@ export interface MockState {
   students: Student[];
   heads: FeeHead[];
   dues: FeeDue[];
+  payments: Payment[];
+  /** Last receipt number used, per session year: { "2026": 41 } */
+  receiptSeq: Record<string, number>;
   feeSettings: FeeSettings | null;
   staff: StaffMember[];
   attendance: Record<string, string[]>;
 }
 
-const KEY = 'classkendra-mock-v2';
+const KEY = 'classkendra-mock-v3';
 
 function empty(): MockState {
   return {
@@ -45,6 +51,8 @@ function empty(): MockState {
     students: [],
     heads: [],
     dues: [],
+    payments: [],
+    receiptSeq: {},
     feeSettings: null,
     staff: [],
     attendance: {},
@@ -82,9 +90,17 @@ export class MockDb {
     this.save();
   }
 
+  /** "R-2026-0042": a running number per session, never reused. The API does this inside a transaction. */
+  nextReceiptNo(paidOn: string): string {
+    const sy = String(sessionYear(paidOn.slice(0, 7), this.state.feeSettings?.sessionStartMonth ?? 4));
+    const n = (this.state.receiptSeq[sy] ?? 0) + 1;
+    this.state.receiptSeq[sy] = n;
+    return `R-${sy}-${String(n).padStart(4, '0')}`;
+  }
+
   /**
-   * Raises dues for one month for every active student, following core/fees/schedule.ts.
-   * Mirrors the nightly Hangfire job in the API.
+   * Raises dues for one month for every active student, following core/fees/schedule.ts,
+   * with each student's concessions applied. Mirrors the nightly Hangfire job in the API.
    */
   ensureDues(month = monthKey()): void {
     const s = this.state;
@@ -96,12 +112,14 @@ export class MockDb {
     for (const st of s.students.filter((x) => x.active)) {
       const joined = st.joinedOn.slice(0, 7);
       for (const head of s.heads) {
-        const amount = head.amounts[st.batchId] ?? 0;
-        if (!amount) continue;
+        const gross = head.amounts[st.batchId] ?? 0;
+        if (!gross) continue;
         if (head.optional && !st.optionalHeadIds.includes(head.id)) continue;
         if (!isDueIn(head.frequency, month, start, joined)) continue;
         const { period, label } = periodFor(head.frequency, month, start);
         if (s.dues.some((d) => d.studentId === st.id && d.feeHeadId === head.id && d.period === period)) continue;
+        const discount = discountFor(st.concessions ?? [], head.id, gross);
+        if (gross - discount <= 0) continue; // full scholarship: nothing to bill
         s.dues.push({
           id: this.id('due'),
           studentId: st.id,
@@ -111,18 +129,49 @@ export class MockDb {
           period,
           periodLabel: label,
           month,
-          amount,
+          grossAmount: gross,
+          discount,
+          amount: gross - discount,
+          paidAmount: 0,
           dueDate: `${month}-${day}`,
           status: 'Pending',
-          paidOn: null,
-          paidAmount: null,
-          mode: null,
+          lastPaidOn: null,
           remindersSent: 0,
         });
         changed = true;
       }
     }
     if (changed) this.save();
+  }
+
+  /** After a student's concessions change, re-price their bills that have no money against them yet. */
+  repriceUnpaid(studentId: string): void {
+    const st = this.state.students.find((x) => x.id === studentId);
+    if (!st) return;
+    this.state.dues = this.state.dues.filter((d) => {
+      if (d.studentId !== studentId || d.paidAmount > 0) return true;
+      d.discount = discountFor(st.concessions, d.feeHeadId, d.grossAmount);
+      d.amount = d.grossAmount - d.discount;
+      return d.amount > 0;
+    });
+    this.save();
+  }
+
+  /** Applies money to dues oldest first; returns the allocations. Shared by the payment service and sample data. */
+  allocate(dues: FeeDue[], amount: number, paidOn: string): Payment['allocations'] {
+    const allocations: Payment['allocations'] = [];
+    let left = amount;
+    for (const d of [...dues].sort((a, b) => a.dueDate.localeCompare(b.dueDate))) {
+      if (left <= 0) break;
+      const take = Math.min(left, d.amount - d.paidAmount);
+      if (take <= 0) continue;
+      d.paidAmount += take;
+      d.status = d.paidAmount >= d.amount ? 'Paid' : 'Partial';
+      d.lastPaidOn = paidOn;
+      allocations.push({ dueId: d.id, headName: d.headName, periodLabel: d.periodLabel, amount: take });
+      left -= take;
+    }
+    return allocations;
   }
 
   /** Fills the account with realistic sample data so every screen can be tried. */
@@ -170,27 +219,46 @@ export class MockDb {
       joinedOn: joined,
       active: true,
       optionalHeadIds: isSchool && i % 3 === 0 ? ['h_transport'] : [],
+      concessions: [],
     }));
+    // A few discounts so the feature is visible.
+    s.students[1]!.concessions = [{ id: 'c_1', reason: 'Sibling', note: 'Younger brother also studies here', feeHeadId: 'h_tuition', kind: 'Percent', value: 10 }];
+    s.students[4]!.concessions = [{ id: 'c_2', reason: 'Scholarship', note: 'Merit scholarship', feeHeadId: 'h_tuition', kind: 'Percent', value: 50 }];
+    s.students[10]!.concessions = [{ id: 'c_3', reason: 'Staff child', note: '', feeHeadId: null, kind: 'Amount', value: 500 }];
+
     s.feeSettings = { dueDay: 5, sessionStartMonth: 4, remindBefore: true, remindOnDue: true, remindAfter: true };
     s.staff = isSchool
       ? [{ id: 'st_1', name: 'Kavita Mishra', phone: '9811100001', role: 'Teacher', batchIds: ['b_5A', 'b_5B'] }]
       : [];
     s.dues = [];
+    s.payments = [];
+    s.receiptSeq = {};
     s.attendance = {};
     this.ensureDues(prevMonth);
     this.ensureDues(thisMonth);
 
-    // Most of last month is paid; two families are still late.
-    for (const d of s.dues.filter((x) => x.month === prevMonth)) {
-      if (d.studentId === 's_1' || d.studentId === 's_7') continue;
-      Object.assign(d, { status: 'Paid', paidOn: `${prevMonth}-06`, paidAmount: d.amount, mode: 'UPI' });
-    }
-    // About 60% of this month is paid so far.
-    const paidThisMonth = new Set(s.students.filter((_, i) => i % 5 < 3).map((x) => x.id));
-    paidThisMonth.delete('s_1');
-    for (const d of s.dues.filter((x) => x.month === thisMonth && paidThisMonth.has(x.studentId))) {
-      Object.assign(d, { status: 'Paid', paidOn: isoDate(today), paidAmount: d.amount, mode: 'Cash' });
-    }
+    const pay = (studentId: string, month: string, paidOn: string, mode: PaymentMode, part?: number) => {
+      const dues = s.dues.filter((d) => d.studentId === studentId && d.month === month && d.status !== 'Paid');
+      const total = dues.reduce((t, d) => t + d.amount - d.paidAmount, 0);
+      const amount = part ? Math.min(part, total) : total;
+      if (amount <= 0) return;
+      const allocations = this.allocate(dues, amount, paidOn);
+      s.payments.push({
+        id: this.id('pay'), receiptNo: this.nextReceiptNo(paidOn), studentId, amount, mode, paidOn, note: '',
+        receivedBy: s.centre?.ownerName || 'Office', allocations,
+      });
+    };
+
+    // Last month: most families paid; two are still late, one paid only part.
+    s.students.forEach((st, i) => {
+      if (st.id === 's_1' || st.id === 's_7') return;
+      if (st.id === 's_4') return pay(st.id, prevMonth, `${prevMonth}-07`, 'Cash', 1000);
+      pay(st.id, prevMonth, `${prevMonth}-0${(i % 5) + 4}`, i % 3 === 0 ? 'Cash' : 'UPI');
+    });
+    // This month: about 60% paid so far.
+    s.students.forEach((st, i) => {
+      if (i % 5 < 3 && st.id !== 's_1') pay(st.id, thisMonth, isoDate(today), i % 2 ? 'Cash' : 'UPI');
+    });
     this.save();
   }
 
