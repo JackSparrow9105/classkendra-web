@@ -1,0 +1,36 @@
+<div class="page page--flow auth">
+  <div class="brand">
+    <span class="logo">CK</span>
+    <span class="brand-name">ClassKendra</span>
+  </div>
+
+  <div class="intro">
+    <h1>Run your coaching centre from your phone</h1>
+    <p class="page-sub">Set up in about 5 minutes. No training needed.</p>
+  </div>
+
+  <ul class="benefits">
+    @for (b of benefits; track b) {
+      <li><span class="tick"><app-icon name="check" [size]="16" [stroke]="2.2" /></span>{{ b }}</li>
+    }
+  </ul>
+
+  <div class="spacer"></div>
+
+  <form class="stack" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label class="label" for="mobile">Your mobile number</label>
+    <div class="input-group" [class.invalid]="submitted() && phone.invalid">
+      <span class="prefix">+91</span>
+      <input id="mobile" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="98765 43210"
+             [formControl]="phone" (input)="onInput()" [attr.aria-invalid]="!!error()"
+             [attr.aria-describedby]="error() ? 'mobile-error' : null">
+    </div>
+    @if (error()) {
+      <span class="error-text" id="mobile-error" role="alert">{{ error() }}</span>
+    }
+    <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">
+      {{ busy() ? 'Sending code…' : 'Get OTP' }}
+    </button>
+    <p class="fine">We'll send a 6-digit code by SMS. By continuing you agree to the <a href="#">Terms</a>.</p>
+  </form>
+</div>

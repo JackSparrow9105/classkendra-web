@@ -1,0 +1,62 @@
+<form class="page page--flow setup" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="stack">
+    <div class="page-head">
+      <span class="step-label">Step 1 of 2</span>
+      <button type="button" class="btn btn-ghost sm" (click)="signOut()">Use another number</button>
+    </div>
+    <div class="steps" aria-hidden="true"><span class="done"></span><span></span></div>
+  </div>
+
+  <div>
+    <h1 class="page-title">About your centre</h1>
+    <p class="page-sub">Parents will see this name in every message.</p>
+  </div>
+
+  <div class="stack">
+    <div class="field">
+      <label class="label" for="name">Centre name</label>
+      <input id="name" class="input" formControlName="name" placeholder="e.g. Sharma Classes"
+             [class.invalid]="invalid('name')" autocomplete="organization">
+      @if (invalid('name')) { <span class="error-text">Enter your centre's name.</span> }
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label class="label" for="owner">Your name</label>
+        <input id="owner" class="input" formControlName="ownerName" placeholder="Full name"
+               [class.invalid]="invalid('ownerName')" autocomplete="name">
+        @if (invalid('ownerName')) { <span class="error-text">Enter your name.</span> }
+      </div>
+      <div class="field">
+        <label class="label" for="city">City</label>
+        <input id="city" class="input" formControlName="city" placeholder="City" autocomplete="address-level2">
+      </div>
+    </div>
+  </div>
+
+  <fieldset class="stack plain">
+    <legend class="label">What do you teach? <span class="muted hint">Pick all that apply</span></legend>
+    <div class="chips wrap">
+      @for (s of subjectOptions; track s) {
+        <button type="button" class="chip" [class.on]="subjects().includes(s)"
+                [attr.aria-pressed]="subjects().includes(s)" (click)="toggleSubject(s)">{{ s }}</button>
+      }
+    </div>
+  </fieldset>
+
+  <fieldset class="stack plain">
+    <legend class="label">How many students?</legend>
+    <div class="size-grid">
+      @for (z of sizeOptions; track z) {
+        <button type="button" class="chip" [class.on]="size() === z" [attr.aria-pressed]="size() === z"
+                (click)="size.set(z)">{{ z }}</button>
+      }
+    </div>
+  </fieldset>
+
+  @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+
+  <div class="spacer"></div>
+  <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">
+    {{ busy() ? 'Saving…' : 'Continue' }}
+  </button>
+</form>

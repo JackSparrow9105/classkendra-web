@@ -1,0 +1,58 @@
+<div class="page">
+  <header class="page-head">
+    <h1 class="page-title">Students</h1>
+    <div class="row" style="gap: 8px">
+      <a routerLink="/students/import" class="btn btn-outline sm">More ways to add</a>
+      <a routerLink="/students/new" class="btn btn-primary sm desktop-only"><app-icon name="plus" [size]="16" [stroke]="2" /> Add student</a>
+    </div>
+  </header>
+
+  <div class="search">
+    <app-icon name="search" [size]="18" />
+    <label for="student-search" class="sr-only">Search students</label>
+    <input id="student-search" type="search" placeholder="Search name or phone"
+           [value]="search()" (input)="onSearch($any($event.target).value)">
+  </div>
+
+  @if (batches().length > 1) {
+    <div class="chips" role="group" aria-label="Filter by batch">
+      <button type="button" class="chip dark" [class.on]="!batchId()" [attr.aria-pressed]="!batchId()" (click)="pickBatch('')">All</button>
+      @for (b of batches(); track b.id) {
+        <button type="button" class="chip dark" [class.on]="batchId() === b.id" [attr.aria-pressed]="batchId() === b.id"
+                (click)="pickBatch(b.id)">{{ b.name }}</button>
+      }
+    </div>
+  }
+
+  @if (!loading() && list().length === 0) {
+    <div class="card empty">
+      <span class="empty-icon"><app-icon name="users" [size]="26" /></span>
+      @if (search() || batchId()) {
+        <strong>No students match</strong>
+        <span class="muted">Try another name or batch.</span>
+      } @else {
+        <strong>No students yet</strong>
+        <span class="muted">Add your first student. It takes about 15 seconds.</span>
+        <a routerLink="/students/new" class="btn btn-primary">Add student</a>
+      }
+    </div>
+  } @else {
+    <span class="count muted">{{ list().length }} students</span>
+    <div class="card card--list">
+      @for (s of list(); track s.id) {
+        <a class="list-row row-link" [routerLink]="['/students', s.id]">
+          <span class="avatar">{{ initials(s.name) }}</span>
+          <div class="list-main">
+            <span class="list-title">{{ s.name }}</span>
+            <span class="list-sub">{{ batchName(s.batchId) }} · {{ formatPhone(s.parentPhone) }}</span>
+          </div>
+          <app-icon name="chevron-right" [size]="18" />
+        </a>
+      }
+    </div>
+  }
+</div>
+
+<a routerLink="/students/new" class="fab mobile-only" aria-label="Add student">
+  <app-icon name="plus" [size]="24" [stroke]="2.2" />
+</a>

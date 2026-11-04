@@ -1,0 +1,66 @@
+.status {
+  gap: 10px;
+}
+
+.status-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.plan-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+
+  h2 {
+    font-size: 18px;
+  }
+
+  &.popular {
+    border-color: var(--accent);
+  }
+
+  .btn {
+    margin-top: 6px;
+  }
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+
+  strong {
+    font-size: 30px;
+    letter-spacing: -0.03em;
+  }
+}
+
+.small {
+  font-size: 12px;
+}
+
+.feature {
+  gap: 10px;
+  font-size: 14px;
+
+  app-icon {
+    color: var(--ok);
+  }
+}
+
+@media (min-width: 960px) {
+  .plan-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

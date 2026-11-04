@@ -1,0 +1,161 @@
+.hello {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  span {
+    font-size: 13px;
+  }
+
+  .page-title {
+    font-size: 22px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.head-actions {
+  gap: 8px;
+}
+
+.trial-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.get-started {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+
+  h2 {
+    font-size: 18px;
+  }
+
+  .page-sub {
+    margin-top: -6px;
+  }
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+
+  .task-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: var(--accent-tint);
+    color: var(--accent-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  .task-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    span {
+      font-size: 13px;
+      color: var(--muted);
+    }
+  }
+
+  &.done .task-icon {
+    background: var(--ok-tint);
+    color: var(--ok-dark);
+  }
+}
+
+.sample {
+  align-self: center;
+  color: var(--accent-dark);
+}
+
+.pct {
+  font-size: 12px;
+  color: #c9c6ff;
+  background: rgba(139, 133, 255, 0.18);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.hero-foot {
+  justify-content: space-between;
+}
+
+.link-card {
+  color: var(--ink);
+  text-decoration: none;
+
+  &:hover {
+    border-color: var(--border-strong);
+  }
+}
+
+.ok-text {
+  color: var(--ok) !important;
+}
+
+.warn-text {
+  color: var(--warn) !important;
+}
+
+.accent-text {
+  color: var(--accent) !important;
+  font-weight: 600;
+}
+
+.skeleton {
+  height: 120px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, #eceef4, #f6f7fb, #eceef4);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+.hero-skel {
+  height: 200px;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (min-width: 960px) {
+  .mobile-only {
+    display: none;
+  }
+}

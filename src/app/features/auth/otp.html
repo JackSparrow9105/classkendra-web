@@ -1,0 +1,29 @@
+<div class="page page--flow auth">
+  <a routerLink="/login" class="icon-btn" aria-label="Change number"><app-icon name="chevron-left" /></a>
+
+  <div class="intro">
+    <h1>Enter the code</h1>
+    <p class="page-sub">We sent a 6-digit code to +91 {{ phone }}.</p>
+  </div>
+
+  <form class="stack" [formGroup]="form" (ngSubmit)="verify()" novalidate>
+    <label class="sr-only" for="otp">6-digit code</label>
+    <input id="otp" class="input otp-input" type="text" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="6" [formControl]="code" (input)="onInput()" [class.invalid]="!!error()"
+           [attr.aria-describedby]="error() ? 'otp-error' : null">
+    @if (error()) {
+      <span class="error-text" id="otp-error" role="alert">{{ error() }}</span>
+    }
+    @if (isDemo) {
+      <span class="demo-hint">Demo mode: use code <strong>123456</strong></span>
+    }
+    <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">
+      {{ busy() ? 'Checking…' : 'Verify and continue' }}
+    </button>
+    @if (secondsLeft() > 0) {
+      <span class="fine">Resend code in {{ secondsLeft() }}s</span>
+    } @else {
+      <button type="button" class="btn btn-ghost resend" (click)="resend()">Resend code</button>
+    }
+  </form>
+</div>

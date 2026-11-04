@@ -1,0 +1,93 @@
+<div class="page setup" [class.page--flow]="!manage()">
+  @if (manage()) {
+    <div class="page-head">
+      <div class="row">
+        <a routerLink="/settings" class="icon-btn" aria-label="Back to settings"><app-icon name="chevron-left" /></a>
+        <h1 class="page-title">Batches</h1>
+      </div>
+    </div>
+  } @else {
+    <div class="stack">
+      <div class="page-head">
+        <a routerLink="/setup/centre" class="icon-btn" aria-label="Back"><app-icon name="chevron-left" /></a>
+        <span class="step-label">Step 2 of 2</span>
+      </div>
+      <div class="steps" aria-hidden="true"><span class="done"></span><span class="done"></span></div>
+    </div>
+    <div>
+      <h1 class="page-title">Add your batches</h1>
+      <p class="page-sub">A batch is a group of students who study together at the same time.</p>
+    </div>
+  }
+
+  <div class="stack">
+    @if (loading()) {
+      <p class="muted">Loading…</p>
+    }
+    @for (b of batches(); track b.id) {
+      <div class="card batch-card">
+        <span class="batch-icon"><app-icon name="cap" /></span>
+        <div class="batch-text">
+          <strong>{{ b.name }}</strong>
+          <span>{{ b.days }} · {{ formatTime(b.startTime) }}–{{ formatTime(b.endTime) }}</span>
+        </div>
+        <button type="button" class="icon-btn plain" [attr.aria-label]="'Edit ' + b.name" (click)="open(b)">
+          <app-icon name="edit" [size]="18" />
+        </button>
+      </div>
+    }
+    <button type="button" class="btn btn-dashed block" (click)="open('new')">
+      <app-icon name="plus" [size]="18" [stroke]="2" /> Add batch
+    </button>
+  </div>
+
+  <div class="note">
+    <app-icon name="info" [size]="18" />
+    <span>You'll set fees for each batch later, from the dashboard.</span>
+  </div>
+
+  @if (!manage()) {
+    <div class="spacer"></div>
+    <button type="button" class="btn btn-primary lg block" [disabled]="batches().length === 0 || busy()" (click)="finish()">
+      @if (batches().length === 0) { Add at least one batch } @else { Finish and go to dashboard }
+    </button>
+  }
+</div>
+
+@if (editing(); as current) {
+  <app-bottom-sheet [title]="current === 'new' ? 'New batch' : 'Edit batch'" (closed)="editing.set(null)">
+    <form class="stack" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="field">
+        <label class="label" for="b-name">Batch name</label>
+        <input id="b-name" class="input" formControlName="name" placeholder="e.g. Class 10 · Maths"
+               [class.invalid]="submitted() && form.controls.name.invalid">
+        @if (submitted() && form.controls.name.invalid) { <span class="error-text">Give the batch a name.</span> }
+      </div>
+      <div class="field">
+        <label class="label" for="b-days">Days</label>
+        <select id="b-days" class="input" formControlName="days">
+          @for (d of dayOptions; track d) { <option [value]="d">{{ d }}</option> }
+        </select>
+      </div>
+      <div class="time-grid">
+        <div class="field">
+          <label class="label" for="b-start">Starts</label>
+          <input id="b-start" class="input" type="time" formControlName="startTime">
+        </div>
+        <div class="field">
+          <label class="label" for="b-end">Ends</label>
+          <input id="b-end" class="input" type="time" formControlName="endTime">
+        </div>
+      </div>
+      @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+      <div class="sheet-actions">
+        @if (current !== 'new') {
+          <button type="button" class="btn btn-outline danger" (click)="remove()">
+            <app-icon name="trash" [size]="18" /> Delete
+          </button>
+        }
+        <button type="submit" class="btn btn-primary lg" [disabled]="busy()">Save batch</button>
+      </div>
+    </form>
+  </app-bottom-sheet>
+}

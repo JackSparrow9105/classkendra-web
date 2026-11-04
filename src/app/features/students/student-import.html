@@ -1,0 +1,79 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row">
+      <a routerLink="/students" class="icon-btn" aria-label="Back to students"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">Add students</h1>
+    </div>
+  </header>
+  <p class="page-sub" style="margin-top: -8px">We need each student's name, parent's WhatsApp number and batch.</p>
+
+  <div class="stack" role="radiogroup" aria-label="How do you want to add students?">
+    @for (o of options; track o.id) {
+      <button type="button" class="option" role="radio" [class.on]="method() === o.id"
+              [attr.aria-checked]="method() === o.id" (click)="method.set(o.id)">
+        <span class="opt-icon"><app-icon [name]="o.icon" /></span>
+        <span class="opt-text">
+          <strong>{{ o.title }}</strong>
+          <span>{{ o.desc }}</span>
+        </span>
+      </button>
+    }
+  </div>
+
+  @switch (method()) {
+    @case ('manual') {
+      <button type="button" class="btn btn-primary lg block" (click)="next()">Add first student</button>
+    }
+    @case ('whatsapp') {
+      <button type="button" class="btn btn-primary lg block" (click)="next()">
+        <app-icon name="whatsapp" [size]="18" /> Open WhatsApp
+      </button>
+    }
+    @case ('file') {
+      <section class="card stack" style="gap: 14px">
+        <label class="drop">
+          <input type="file" accept=".csv,.xlsx,.xls" (change)="onFile($event)">
+          <app-icon name="file" [size]="26" />
+          <strong>{{ fileName() || 'Choose a CSV file' }}</strong>
+          <span class="muted" style="font-size: 13px">Columns: Name, Parent phone, Batch</span>
+        </label>
+        <button type="button" class="btn btn-ghost sm" (click)="downloadSample()">Download sample file</button>
+
+        @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+
+        @if (rows().length > 0) {
+          <strong>{{ rows().length }} students found</strong>
+          <div class="table-box">
+            <table class="preview-table">
+              <thead><tr><th>Name</th><th>Parent phone</th><th>Batch</th></tr></thead>
+              <tbody>
+                @for (r of rows().slice(0, 5); track $index) {
+                  <tr><td>{{ r.name }}</td><td>{{ r.parentPhone }}</td><td>{{ r.batchName }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (rows().length > 5) { <span class="muted" style="font-size: 12px">and {{ rows().length - 5 }} more</span> }
+          <button type="button" class="btn btn-primary lg block" [disabled]="busy()" (click)="upload()">
+            {{ busy() ? 'Adding…' : 'Add ' + rows().length + ' students' }}
+          </button>
+        }
+
+        @if (result(); as r) {
+          <div class="note ok" role="status">
+            <app-icon name="check" [size]="18" [stroke]="2.2" /> {{ r.added }} students added
+          </div>
+          @if (r.skipped.length) {
+            <div class="note warn">
+              <div class="stack" style="gap: 4px">
+                <strong>{{ r.skipped.length }} rows skipped</strong>
+                @for (s of r.skipped; track s.row) { <span>Row {{ s.row }}: {{ s.reason }}</span> }
+              </div>
+            </div>
+          }
+          <a routerLink="/students" class="btn btn-outline block">See students</a>
+        }
+      </section>
+    }
+  }
+</div>

@@ -1,0 +1,122 @@
+<div class="page">
+  <header class="page-head">
+    <div class="hello">
+      <span class="muted">{{ greeting }}</span>
+      <h1 class="page-title">{{ centre.centre()?.name }}</h1>
+    </div>
+    <div class="row head-actions">
+      @if (centre.trialDaysLeft() !== null) {
+        <a routerLink="/plans" class="trial-pill mobile-only">
+          <app-icon name="crown" [size]="16" /> {{ centre.trialDaysLeft() }} days left
+        </a>
+      }
+      <a routerLink="/settings" class="icon-btn mobile-only" aria-label="Settings"><app-icon name="settings" /></a>
+    </div>
+  </header>
+
+  @if (data(); as d) {
+    @if (!setupDone()) {
+      <section class="card get-started" aria-labelledby="gs-title">
+        <h2 id="gs-title">Finish setting up</h2>
+        <p class="page-sub">Two quick steps and reminders start going out by themselves.</p>
+
+        <a class="task" routerLink="/students/new" [class.done]="d.studentCount > 0">
+          <span class="task-icon">
+            @if (d.studentCount > 0) { <app-icon name="check" [size]="18" [stroke]="2.2" /> } @else { 1 }
+          </span>
+          <span class="task-text">
+            <strong>Add your students</strong>
+            <span>
+              @if (d.studentCount > 0) { {{ d.studentCount }} added · add more any time }
+              @else { Name, parent's WhatsApp number and batch }
+            </span>
+          </span>
+          <app-icon name="chevron-right" [size]="18" />
+        </a>
+
+        <a class="task" routerLink="/fees/setup" [class.done]="d.feesConfigured">
+          <span class="task-icon">
+            @if (d.feesConfigured) { <app-icon name="check" [size]="18" [stroke]="2.2" /> } @else { 2 }
+          </span>
+          <span class="task-text">
+            <strong>Set fees and reminders</strong>
+            <span>Monthly fee per batch and when to remind parents</span>
+          </span>
+          <app-icon name="chevron-right" [size]="18" />
+        </a>
+
+        @if (isDemo && d.studentCount === 0) {
+          <button type="button" class="btn btn-ghost sample" (click)="loadSample()">Just exploring? Fill with sample data</button>
+        }
+      </section>
+    }
+
+    @if (d.feesConfigured) {
+      <section class="hero" aria-label="Fees this month">
+        <div class="row" style="justify-content: space-between">
+          <span class="hero-label">Collected in {{ monthName(d.month) }}</span>
+          <span class="pct">{{ collectedPct() }}% of {{ rupees(d.expected) }}</span>
+        </div>
+        <span class="hero-amount">{{ rupees(d.collected) }}</span>
+        <div class="progress" role="progressbar" [attr.aria-valuenow]="collectedPct()" aria-valuemin="0" aria-valuemax="100">
+          <span [style.width.%]="collectedPct()"></span>
+        </div>
+        <div class="row hero-foot">
+          <div class="stack" style="gap: 2px">
+            <span class="hero-label">Still pending</span>
+            <span class="hero-pending">{{ rupees(d.pending) }} · {{ d.pendingCount }} students</span>
+          </div>
+          @if (d.pendingCount > 0) {
+            <button type="button" class="btn btn-primary" [disabled]="reminding()" (click)="remindAll()">
+              {{ reminding() ? 'Sending…' : 'Remind all' }}
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    @if (d.studentCount > 0) {
+      <div class="grid-2">
+        <a class="card stat link-card" routerLink="/attendance">
+          <span class="stat-label">Today's attendance</span>
+          @if (attendancePct() !== null) {
+            <span class="stat-value">{{ attendancePct() }}%</span>
+            <span class="stat-note ok-text">{{ d.presentToday }} of {{ d.markedToday }} present</span>
+          } @else {
+            <span class="stat-value">—</span>
+            <span class="stat-note accent-text">Mark attendance</span>
+          }
+        </a>
+        <a class="card stat link-card" routerLink="/fees">
+          <span class="stat-label">Due this week</span>
+          <span class="stat-value">{{ rupees(d.dueThisWeek) }}</span>
+          <span class="stat-note">{{ d.dueThisWeekCount }} students</span>
+        </a>
+      </div>
+    }
+
+    @if (d.needsAttention.length > 0) {
+      <section class="stack">
+        <div class="section-title">
+          <h2 style="font-size: 16px">Late fees</h2>
+          <a routerLink="/fees">See all</a>
+        </div>
+        <div class="card card--list">
+          @for (n of d.needsAttention; track n.id) {
+            <div class="list-row">
+              <span class="avatar warn">{{ initials(n.studentName) }}</span>
+              <div class="list-main">
+                <span class="list-title">{{ n.studentName }}</span>
+                <span class="list-sub warn-text">{{ rupees(n.amount) }} · {{ n.daysLate }} days late</span>
+              </div>
+              <button type="button" class="btn btn-outline sm" (click)="remind(n)">Remind</button>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  } @else {
+    <div class="skeleton hero-skel"></div>
+    <div class="grid-2"><div class="skeleton"></div><div class="skeleton"></div></div>
+  }
+</div>

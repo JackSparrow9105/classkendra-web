@@ -1,0 +1,70 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row">
+      <a routerLink="/dashboard" class="icon-btn mobile-only" aria-label="Back"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">Settings</h1>
+    </div>
+  </header>
+
+  @if (centre.centre(); as c) {
+    <section class="card centre-card">
+      <span class="centre-logo">{{ c.name.charAt(0) }}</span>
+      <div class="centre-text">
+        <strong>{{ c.name }}</strong>
+        <span>{{ c.ownerName }}@if (c.city) { · {{ c.city }} } · +91 {{ user()?.phone }}</span>
+      </div>
+      <button type="button" class="btn btn-outline sm" (click)="edit()">Edit</button>
+    </section>
+  }
+
+  <nav class="card card--list" aria-label="Settings">
+    @for (l of links; track l.path) {
+      <a class="list-row link-row" [routerLink]="l.path">
+        <span class="avatar accent"><app-icon [name]="l.icon" [size]="18" /></span>
+        <span class="list-main">
+          <span class="list-title">{{ l.title }}</span>
+          <span class="list-sub">{{ l.sub }}</span>
+        </span>
+        <app-icon name="chevron-right" [size]="18" />
+      </a>
+    }
+    <button type="button" class="list-row link-row" (click)="inviteStaff()">
+      <span class="avatar accent"><app-icon name="user-plus" [size]="18" /></span>
+      <span class="list-main">
+        <span class="list-title">Staff</span>
+        <span class="list-sub">Let your receptionist mark attendance and fees</span>
+      </span>
+      <app-icon name="chevron-right" [size]="18" />
+    </button>
+  </nav>
+
+  <div class="stack">
+    <button type="button" class="btn btn-outline lg block" (click)="logout()">
+      <app-icon name="logout" [size]="18" /> Sign out
+    </button>
+    @if (isDemo) {
+      <button type="button" class="btn btn-ghost block danger" (click)="resetDemo()">Reset demo data</button>
+    }
+  </div>
+</div>
+
+@if (editing()) {
+  <app-bottom-sheet title="Centre details" (closed)="editing.set(false)">
+    <form class="stack" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="field">
+        <label class="label" for="c-name">Centre name</label>
+        <input id="c-name" class="input" formControlName="name">
+      </div>
+      <div class="field">
+        <label class="label" for="c-owner">Your name</label>
+        <input id="c-owner" class="input" formControlName="ownerName">
+      </div>
+      <div class="field">
+        <label class="label" for="c-city">City</label>
+        <input id="c-city" class="input" formControlName="city">
+      </div>
+      @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+      <button type="submit" class="btn btn-primary lg block" [disabled]="busy() || form.invalid">Save</button>
+    </form>
+  </app-bottom-sheet>
+}

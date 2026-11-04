@@ -1,0 +1,45 @@
+<aside class="side" aria-label="Main">
+  <div class="brand">
+    <span class="logo">CK</span>
+    <div class="brand-text">
+      <strong>ClassKendra</strong>
+      <span>{{ centre.centre()?.name }}</span>
+    </div>
+  </div>
+
+  <nav class="side-nav">
+    @for (item of nav; track item.path) {
+      <a [routerLink]="item.path" routerLinkActive="active" #rla="routerLinkActive"
+         [attr.aria-current]="rla.isActive ? 'page' : null">
+        <app-icon [name]="item.icon" />
+        {{ item.label }}
+      </a>
+    }
+    <a routerLink="/settings" routerLinkActive="active" #rls="routerLinkActive"
+       [attr.aria-current]="rls.isActive ? 'page' : null">
+      <app-icon name="settings" />
+      Settings
+    </a>
+  </nav>
+
+  @if (centre.trialDaysLeft() !== null) {
+    <a class="trial" routerLink="/plans">
+      <app-icon name="crown" [size]="18" />
+      <span>Free trial · {{ centre.trialDaysLeft() }} days left</span>
+    </a>
+  }
+</aside>
+
+<main class="content">
+  <router-outlet />
+</main>
+
+<nav class="bottom" aria-label="Main">
+  @for (item of nav; track item.path) {
+    <a [routerLink]="item.path" routerLinkActive="active" #rlb="routerLinkActive"
+       [attr.aria-current]="rlb.isActive ? 'page' : null">
+      <app-icon [name]="item.icon" [size]="22" />
+      <span>{{ item.label }}</span>
+    </a>
+  }
+</nav>

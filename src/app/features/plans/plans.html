@@ -1,0 +1,73 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row">
+      <a routerLink="/settings" class="icon-btn" aria-label="Back"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">Plans</h1>
+    </div>
+  </header>
+
+  @if (centre.centre(); as c) {
+    <section class="hero status">
+      @if (c.plan === 'Trial') {
+        <span class="hero-label">Free trial</span>
+        <span class="status-title">{{ centre.trialDaysLeft() }} days left</span>
+        <span class="hero-label">Ends {{ niceDate(c.trialEndsOn) }}. Your data stays safe whatever you decide.</span>
+      } @else {
+        <span class="hero-label">Current plan</span>
+        <span class="status-title">{{ c.plan }}</span>
+      }
+      <div class="stack" style="gap: 6px">
+        <div class="row" style="justify-content: space-between">
+          <span class="hero-label">WhatsApp messages this month</span>
+          <span class="hero-label">{{ c.messagesUsed }} / {{ c.messageLimit }}</span>
+        </div>
+        <div class="progress" role="progressbar" [attr.aria-valuenow]="usagePct()" aria-valuemin="0" aria-valuemax="100">
+          <span [style.width.%]="usagePct()"></span>
+        </div>
+      </div>
+    </section>
+  }
+
+  <div class="seg" role="radiogroup" aria-label="Billing">
+    <button type="button" role="radio" [class.on]="cycle() === 'monthly'" [attr.aria-checked]="cycle() === 'monthly'" (click)="cycle.set('monthly')">Monthly</button>
+    <button type="button" role="radio" [class.on]="cycle() === 'yearly'" [attr.aria-checked]="cycle() === 'yearly'" (click)="cycle.set('yearly')">Yearly · 2 months free</button>
+  </div>
+
+  <div class="plan-grid">
+    @for (p of plans(); track p.code) {
+      <article class="plan" [class.popular]="p.popular">
+        <div class="row" style="justify-content: space-between">
+          <h2>{{ p.name }}</h2>
+          @if (p.popular) { <span class="badge accent">Most chosen</span> }
+        </div>
+        <span class="muted">{{ p.students }}</span>
+        <div class="price">
+          <strong>{{ rupees(perMonth(p)) }}</strong><span class="muted">/month</span>
+        </div>
+        <span class="muted small">
+          @if (cycle() === 'yearly') { {{ rupees(p.yearly) }} billed yearly } @else { Billed monthly }
+          · {{ p.messages }} messages
+        </span>
+        @if (centre.centre()?.plan === p.code) {
+          <button type="button" class="btn btn-outline block" disabled>Current plan</button>
+        } @else {
+          <button type="button" class="btn block" [class.btn-primary]="p.popular" [class.btn-outline]="!p.popular"
+                  [disabled]="busyPlan() !== null" (click)="choose(p)">
+            {{ busyPlan() === p.code ? 'Opening payment…' : 'Choose ' + p.name }}
+          </button>
+        }
+      </article>
+    }
+  </div>
+
+  @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+
+  <section class="card stack">
+    <strong>Every plan includes</strong>
+    @for (f of features; track f) {
+      <span class="row feature"><app-icon name="check" [size]="16" [stroke]="2.2" /> {{ f }}</span>
+    }
+  </section>
+
+  <p class="muted small" style="text-align: center">Pay by UPI AutoPay, card or net banking. Cancel any time.</p>
+</div>

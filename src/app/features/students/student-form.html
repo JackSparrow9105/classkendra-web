@@ -1,0 +1,79 @@
+<form class="page" [formGroup]="form" (ngSubmit)="save(false)" novalidate>
+  <header class="page-head">
+    <div class="row">
+      <a routerLink="/students" class="icon-btn" aria-label="Back to students"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">{{ isEdit() ? 'Edit student' : 'Add student' }}</h1>
+    </div>
+    @if (addedCount() > 0) {
+      <span class="badge ok">{{ addedCount() }} added</span>
+    }
+  </header>
+
+  @if (batches().length === 0) {
+    <div class="note warn">
+      <app-icon name="info" [size]="18" />
+      <span>Add a batch first, then you can add students to it. <a routerLink="/batches">Add batch</a></span>
+    </div>
+  }
+
+  <div class="card stack" style="gap: 14px">
+    <div class="field">
+      <label class="label" for="s-name">Student name</label>
+      <input id="s-name" class="input" formControlName="name" placeholder="Full name" autocomplete="off"
+             [class.invalid]="invalid('name')">
+      @if (invalid('name')) { <span class="error-text">Enter the student's name.</span> }
+    </div>
+
+    <div class="field">
+      <label class="label" for="s-phone">Parent's WhatsApp number</label>
+      <div class="row" style="gap: 8px">
+        <div class="input-group" style="flex: 1" [style.border-color]="invalid('parentPhone') ? 'var(--warn)' : null">
+          <span class="prefix">+91</span>
+          <input id="s-phone" type="tel" inputmode="numeric" formControlName="parentPhone" placeholder="98765 43210"
+                 (input)="onPhoneInput()" autocomplete="off">
+        </div>
+        @if (canPickContact) {
+          <button type="button" class="btn btn-outline contact-btn" (click)="pickContact()" aria-label="Pick from contacts">
+            <app-icon name="phone" [size]="18" />
+          </button>
+        }
+      </div>
+      @if (invalid('parentPhone')) { <span class="error-text">Enter a 10-digit mobile number.</span> }
+      <span class="muted" style="font-size: 12px">Fee reminders and absent alerts go to this number.</span>
+    </div>
+
+    <div class="field">
+      <label class="label" for="s-parent">Parent's name <span class="muted" style="font-weight: 400">optional</span></label>
+      <input id="s-parent" class="input" formControlName="parentName" placeholder="e.g. Rajesh Gupta" autocomplete="off">
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label class="label" for="s-batch">Batch</label>
+        <select id="s-batch" class="input" formControlName="batchId" [class.invalid]="invalid('batchId')">
+          <option value="" disabled>Choose</option>
+          @for (b of batches(); track b.id) { <option [value]="b.id">{{ b.name }}</option> }
+        </select>
+        @if (invalid('batchId')) { <span class="error-text">Choose a batch.</span> }
+      </div>
+      <div class="field">
+        <label class="label" for="s-joined">Joined on</label>
+        <input id="s-joined" class="input" type="date" formControlName="joinedOn">
+      </div>
+    </div>
+  </div>
+
+  @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+
+  <div class="form-actions">
+    @if (isEdit()) {
+      <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">Save changes</button>
+      <button type="button" class="btn btn-ghost danger" (click)="deactivate()">
+        <app-icon name="trash" [size]="18" /> Remove student
+      </button>
+    } @else {
+      <button type="button" class="btn btn-primary lg block" [disabled]="busy()" (click)="save(true)">Save and add another</button>
+      <button type="submit" class="btn btn-outline lg block" [disabled]="busy()">Save and close</button>
+    }
+  </div>
+</form>

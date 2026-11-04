@@ -1,0 +1,165 @@
+/* Fee setup */
+.fee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  border-bottom: 1px solid var(--divider);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  label {
+    font-size: 14px;
+    font-weight: 600;
+    min-width: 0;
+  }
+}
+
+.amount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+
+  &:focus-within {
+    border-color: var(--accent);
+  }
+
+  input {
+    width: 64px;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  span {
+    color: var(--muted);
+  }
+
+  .per {
+    font-size: 12px;
+  }
+}
+
+.due-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.input.compact {
+  height: 40px;
+  width: 76px;
+  padding: 0 28px 0 12px;
+  background-position: right 8px center;
+  font-weight: 600;
+}
+
+.wa-bubble {
+  align-self: flex-start;
+  max-width: 320px;
+  background: #dcf8c6;
+  border-radius: 4px 14px 14px 14px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #1f2d1a;
+}
+
+.wa-link {
+  color: #0b5cad;
+  font-weight: 600;
+}
+
+/* Fee list */
+.month-select {
+  height: 40px;
+  width: auto;
+  font-size: 13px;
+  font-weight: 600;
+  border-width: 1px;
+  border-color: var(--border);
+}
+
+.total-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--warn-tint);
+  color: var(--warn-dark);
+  font-size: 13px;
+
+  strong {
+    font-size: 18px;
+  }
+
+  &.ok {
+    background: var(--ok-tint);
+    color: var(--ok-dark);
+  }
+}
+
+.due-card {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  color: var(--ink);
+
+  &:hover {
+    border-color: var(--border-strong);
+  }
+
+  .due-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+
+    strong {
+      font-size: 15px;
+    }
+  }
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--bg);
+
+  strong {
+    font-size: 26px;
+    letter-spacing: -0.02em;
+  }
+}
+
+.detail-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+}

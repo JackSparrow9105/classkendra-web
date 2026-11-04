@@ -1,0 +1,100 @@
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { MockDb } from '../mock/mock-db';
+import { Student, StudentImportRow } from '../models/models';
+import { ApiService } from './api.service';
+
+export type StudentInput = Omit<Student, 'id' | 'active'>;
+
+export interface ImportResult {
+  added: number;
+  skipped: { row: number; reason: string }[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class StudentService {
+  private readonly api = inject(ApiService);
+  private readonly mock = inject(MockDb);
+
+  /** GET /students?batchId=&search= (the real API should paginate: &page=&pageSize=) */
+  list(filter: { batchId?: string; search?: string } = {}): Observable<Student[]> {
+    if (!environment.useMock) return this.api.get<Student[]>('students', filter);
+    const q = (filter.search ?? '').trim().toLowerCase();
+    const rows = this.mock.snapshot.students
+      .filter((s) => s.active)
+      .filter((s) => !filter.batchId || s.batchId === filter.batchId)
+      .filter((s) => !q || s.name.toLowerCase().includes(q) || s.parentPhone.includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return this.mock.respond(rows, 150);
+  }
+
+  /** GET /students/{id} */
+  get(id: string): Observable<Student | undefined> {
+    if (!environment.useMock) return this.api.get<Student>(`students/${id}`);
+    return this.mock.respond(this.mock.snapshot.students.find((s) => s.id === id));
+  }
+
+  /** POST /students */
+  create(input: StudentInput): Observable<Student> {
+    if (!environment.useMock) return this.api.post<Student>('students', input);
+    const dup = this.mock.snapshot.students.find(
+      (s) => s.active && s.parentPhone === input.parentPhone && s.name.toLowerCase() === input.name.toLowerCase(),
+    );
+    if (dup) return this.mock.fail(`${input.name} is already added with this number.`);
+    const student: Student = { id: this.mock.id('stu'), ...input, active: true };
+    this.mock.update((s) => s.students.push(student));
+    this.mock.ensureDues();
+    return this.mock.respond(student);
+  }
+
+  /** PUT /students/{id} */
+  update(id: string, input: StudentInput): Observable<Student> {
+    if (!environment.useMock) return this.api.put<Student>(`students/${id}`, input);
+    let updated!: Student;
+    this.mock.update((s) => {
+      s.students = s.students.map((st) => (st.id === id ? (updated = { ...st, ...input }) : st));
+    });
+    return this.mock.respond(updated);
+  }
+
+  /** DELETE /students/{id} — soft delete: history and paid fees are kept. */
+  deactivate(id: string): Observable<void> {
+    if (!environment.useMock) return this.api.delete<void>(`students/${id}`);
+    this.mock.update((s) => {
+      const st = s.students.find((x) => x.id === id);
+      if (st) st.active = false;
+      s.dues = s.dues.filter((d) => !(d.studentId === id && d.status === 'Pending'));
+    });
+    return this.mock.respond(undefined);
+  }
+
+  /** POST /students/import — the real API accepts the .xlsx file (multipart) and parses it server-side. */
+  import(rows: StudentImportRow[]): Observable<ImportResult> {
+    if (!environment.useMock) return this.api.post<ImportResult>('students/import', rows);
+    const result: ImportResult = { added: 0, skipped: [] };
+    const batches = this.mock.snapshot.batches;
+    this.mock.update((s) => {
+      rows.forEach((r, i) => {
+        const batch = batches.find((b) => b.name.toLowerCase() === r.batchName.trim().toLowerCase());
+        const phone = r.parentPhone.replace(/\D/g, '').slice(-10);
+        if (!r.name.trim()) return result.skipped.push({ row: i + 2, reason: 'Name is empty' });
+        if (phone.length !== 10) return result.skipped.push({ row: i + 2, reason: 'Phone number is not 10 digits' });
+        if (!batch) return result.skipped.push({ row: i + 2, reason: `No batch called "${r.batchName}"` });
+        s.students.push({
+          id: this.mock.id('stu'),
+          name: r.name.trim(),
+          parentName: '',
+          parentPhone: phone,
+          batchId: batch.id,
+          joinedOn: new Date().toISOString().slice(0, 10),
+          active: true,
+        });
+        result.added++;
+        return;
+      });
+    });
+    this.mock.ensureDues();
+    return this.mock.respond(result, 700);
+  }
+}

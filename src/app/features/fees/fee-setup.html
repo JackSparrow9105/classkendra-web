@@ -1,0 +1,62 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row">
+      <a routerLink="/dashboard" class="icon-btn" aria-label="Back"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">Fees and reminders</h1>
+    </div>
+  </header>
+
+  <section class="stack">
+    <h2 class="label">Monthly fee for each batch</h2>
+    @if (batches().length === 0) {
+      <div class="note warn"><span>Add a batch first. <a routerLink="/batches">Add batch</a></span></div>
+    } @else {
+      <div class="card card--list">
+        @for (b of batches(); track b.id) {
+          <div class="fee-row">
+            <label [for]="'fee-' + b.id">{{ b.name }}</label>
+            <div class="amount">
+              <span>₹</span>
+              <input [id]="'fee-' + b.id" type="text" inputmode="numeric" placeholder="0"
+                     [ngModel]="amounts()[b.id]" (ngModelChange)="setAmount(b.id, $event)">
+              <span class="per">/month</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <div class="card due-row">
+    <label for="due-day" class="muted">Fee due on</label>
+    <div class="row" style="gap: 6px">
+      <select id="due-day" class="input compact" [ngModel]="settings().dueDay" (ngModelChange)="setDueDay($event)">
+        @for (d of dueDays; track d) { <option [ngValue]="d">{{ d }}</option> }
+      </select>
+      <span class="muted">of every month</span>
+    </div>
+  </div>
+
+  <section class="stack">
+    <h2 class="label">Send WhatsApp reminders</h2>
+    <div class="card card--list" style="padding: 2px 16px">
+      @for (r of reminderRules; track r.key) {
+        <button type="button" class="switch-row" role="switch" [attr.aria-checked]="settings()[r.key]" (click)="toggle(r.key)">
+          {{ r.label }}
+          <span class="switch" [class.on]="settings()[r.key]"></span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="stack" style="gap: 6px">
+    <span class="label muted">Parents will see</span>
+    <div class="wa-bubble">{{ preview() }} <span class="wa-link">pay link</span></div>
+  </section>
+
+  @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+
+  <button type="button" class="btn btn-primary lg block" [disabled]="busy() || batches().length === 0" (click)="save()">
+    {{ busy() ? 'Saving…' : 'Save and turn on reminders' }}
+  </button>
+</div>
