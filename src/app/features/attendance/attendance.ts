@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Batch, Student } from '../../core/models/models';
+import { LabelService } from '../../core/labels';
 import { AttendanceService } from '../../core/services/attendance.service';
+import { AuthService } from '../../core/services/auth.service';
 import { BatchService } from '../../core/services/batch.service';
 import { StudentService } from '../../core/services/student.service';
 import { initials, isoDate, longDate } from '../../shared/format';
@@ -21,6 +23,8 @@ export class Attendance {
   private readonly batchService = inject(BatchService);
   private readonly studentService = inject(StudentService);
   private readonly toast = inject(ToastService);
+  protected readonly labels = inject(LabelService);
+  protected readonly auth = inject(AuthService);
 
   protected readonly today = isoDate();
   protected readonly date = signal(this.today);

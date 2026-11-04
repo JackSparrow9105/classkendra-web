@@ -1,4 +1,51 @@
 /* Fee setup */
+.head-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.head-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.head-name {
+  font-weight: 600;
+}
+
+.small-note {
+  font-size: 12px;
+  margin-top: -4px;
+}
+
+.compact-switch {
+  min-height: 44px;
+  border-top: 1px solid var(--divider);
+  border-bottom: none;
+  padding-top: 4px;
+}
+
+.amounts {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--divider);
+}
+
+.input.compact.wide {
+  width: 140px;
+}
+
+.card--list .due-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--divider);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
 .fee-row {
   display: flex;
   align-items: center;
@@ -141,6 +188,113 @@
       font-size: 15px;
     }
   }
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+
+  .search {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.batch-select {
+  width: auto;
+  max-width: 44%;
+  height: 46px;
+  font-size: 13px;
+  font-weight: 600;
+  border-width: 1px;
+  border-color: var(--border);
+}
+
+.due-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.due-name {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.due-sub {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.due-lines {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 14px;
+}
+
+.due-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  border-bottom: 1px solid var(--divider);
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  &.paid {
+    cursor: default;
+    color: var(--muted);
+  }
+}
+
+.paid-tick {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--ok-tint);
+  color: var(--ok-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.due-line-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+}
+
+.late {
+  font-style: normal;
+  color: var(--warn);
+  font-weight: 600;
 }
 
 .detail {

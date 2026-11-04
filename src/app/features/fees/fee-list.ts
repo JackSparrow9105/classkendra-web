@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { FeeDueView, FeeSettings, PaymentMode } from '../../core/models/models';
+import { Batch, FeeSettings, PaymentMode, StudentFees } from '../../core/models/models';
+import { LabelService } from '../../core/labels';
+import { BatchService } from '../../core/services/batch.service';
 import { FeeService, FeeTab } from '../../core/services/fee.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { BottomSheet } from '../../shared/bottom-sheet';
@@ -18,20 +20,24 @@ import { ToastService } from '../../shared/toast';
 })
 export class FeeList {
   private readonly fees = inject(FeeService);
+  private readonly batchService = inject(BatchService);
   private readonly toast = inject(ToastService);
+  protected readonly labels = inject(LabelService);
 
   protected readonly tabs: FeeTab[] = ['Pending', 'Paid', 'All'];
   protected readonly tab = signal<FeeTab>('Pending');
   protected readonly month = signal(monthKey());
+  protected readonly batchId = signal('');
   protected readonly search = signal('');
-  protected readonly rows = signal<FeeDueView[]>([]);
+  protected readonly rows = signal<StudentFees[]>([]);
+  protected readonly batches = signal<Batch[]>([]);
   protected readonly loading = signal(true);
   protected readonly settings = signal<FeeSettings | null | undefined>(undefined);
   protected readonly reminding = signal(false);
 
   /** Bottom sheet state */
-  protected readonly selected = signal<FeeDueView | null>(null);
-  protected readonly payAmount = signal('');
+  protected readonly selected = signal<StudentFees | null>(null);
+  protected readonly ticked = signal<Set<string>>(new Set());
   protected readonly payMode = signal<PaymentMode>('Cash');
   protected readonly payDate = signal(isoDate());
   protected readonly sheetError = signal('');
@@ -41,6 +47,7 @@ export class FeeList {
   protected readonly initials = initials;
   protected readonly niceDate = niceDate;
   protected readonly monthName = monthName;
+  protected readonly today = isoDate();
 
   protected readonly months = Array.from({ length: 6 }, (_, i) => {
     const d = new Date();
@@ -48,21 +55,20 @@ export class FeeList {
     return monthKey(d);
   });
 
-  protected readonly pendingTotal = computed(() =>
-    this.rows().filter((r) => r.status === 'Pending').reduce((t, r) => t + r.amount, 0),
-  );
-  /** Students (not bills) with something pending; one student can owe for two months. */
-  protected readonly pendingCount = computed(
-    () => new Set(this.rows().filter((r) => r.status === 'Pending').map((r) => r.studentId)).size,
-  );
-  protected readonly paidTotal = computed(() =>
-    this.rows().filter((r) => r.status === 'Paid').reduce((t, r) => t + (r.paidAmount ?? 0), 0),
-  );
+  protected readonly pendingTotal = computed(() => this.rows().reduce((t, r) => t + r.pending, 0));
+  protected readonly pendingCount = computed(() => this.rows().filter((r) => r.pending > 0).length);
+  protected readonly paidTotal = computed(() => this.rows().reduce((t, r) => t + r.paid, 0));
+  protected readonly tickedTotal = computed(() => {
+    const s = this.selected();
+    const t = this.ticked();
+    return s ? s.dues.filter((d) => t.has(d.id)).reduce((sum, d) => sum + d.amount, 0) : 0;
+  });
 
   private searchTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
-    this.fees.getSettings().subscribe((s) => this.settings.set(s));
+    this.fees.getSetup().subscribe((s) => this.settings.set(s.settings));
+    this.batchService.list().subscribe((b) => this.batches.set(b));
     this.load();
   }
 
@@ -76,37 +82,54 @@ export class FeeList {
     this.load();
   }
 
+  protected setBatch(id: string): void {
+    this.batchId.set(id);
+    this.load();
+  }
+
   protected onSearch(v: string): void {
     this.search.set(v);
     clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.load(), 300);
   }
 
-  protected statusText(r: FeeDueView): string {
-    if (r.status === 'Paid') return `Paid ${niceDate(r.paidOn!)} · ${r.mode}`;
-    if (r.daysLate > 0) return `${r.daysLate} days late`;
-    if (r.daysLate === 0) return 'Due today';
-    return `Due ${niceDate(r.dueDate)}`;
+  protected statusText(r: StudentFees): string {
+    if (r.pending === 0) return 'Paid';
+    if (r.maxDaysLate > 0) return `${r.maxDaysLate} days late`;
+    if (r.nextDueDate === this.today) return 'Due today';
+    return r.nextDueDate ? `Due ${niceDate(r.nextDueDate)}` : '';
   }
 
-  protected badgeClass(r: FeeDueView): string {
-    return r.status === 'Paid' ? 'ok' : r.daysLate > 0 ? 'warn' : '';
+  protected badgeClass(r: StudentFees): string {
+    return r.pending === 0 ? 'ok' : r.maxDaysLate > 0 ? 'warn' : '';
   }
 
-  protected open(r: FeeDueView): void {
+  protected headsSummary(r: StudentFees): string {
+    const pending = r.dues.filter((d) => d.status === 'Pending');
+    const list = pending.length ? pending : r.dues;
+    const names = [...new Set(list.map((d) => d.headName))];
+    return names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ');
+  }
+
+  protected open(r: StudentFees): void {
     this.selected.set(r);
-    this.payAmount.set(String(r.amount));
+    this.ticked.set(new Set(r.dues.filter((d) => d.status === 'Pending').map((d) => d.id)));
     this.payMode.set('Cash');
     this.payDate.set(isoDate());
     this.sheetError.set('');
   }
 
-  protected setPayAmount(value: string): void {
-    this.payAmount.set(String(value ?? '').replace(/\D/g, '').slice(0, 7));
+  protected toggleDue(id: string): void {
+    this.ticked.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
-  protected remind(r: FeeDueView): void {
-    this.fees.remind(r.id).subscribe(() => {
+  protected remind(r: StudentFees): void {
+    this.fees.remind([r.studentId]).subscribe(() => {
       this.toast.show(`Reminder sent to ${r.studentName}'s parent`);
       this.selected.set(null);
       this.load();
@@ -123,19 +146,17 @@ export class FeeList {
   }
 
   protected recordPayment(): void {
-    const r = this.selected();
-    const amount = Number(this.payAmount());
-    if (!r) return;
-    if (!amount || amount <= 0) {
-      this.sheetError.set('Enter the amount received.');
+    const ids = [...this.ticked()];
+    if (!ids.length) {
+      this.sheetError.set('Tick the fees that were paid.');
       return;
     }
     this.saving.set(true);
-    this.fees.recordPayment(r.id, { amount, mode: this.payMode(), paidOn: this.payDate() }).subscribe({
-      next: () => {
+    this.fees.recordPayment({ dueIds: ids, mode: this.payMode(), paidOn: this.payDate() }).subscribe({
+      next: (res) => {
         this.saving.set(false);
         this.selected.set(null);
-        this.toast.show(`${rupees(amount)} recorded. Receipt sent on WhatsApp.`);
+        this.toast.show(`${rupees(res.paid)} recorded. Receipt sent on WhatsApp.`);
         this.load();
       },
       error: (e) => {
@@ -146,7 +167,7 @@ export class FeeList {
   }
 
   private load(): void {
-    this.fees.list(this.tab(), this.search(), this.month()).subscribe((rows) => {
+    this.fees.list(this.tab(), this.search(), this.month(), this.batchId()).subscribe((rows) => {
       this.rows.set(rows);
       this.loading.set(false);
     });

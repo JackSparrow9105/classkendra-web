@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Batch, StudentImportRow } from '../../core/models/models';
+import { LabelService } from '../../core/labels';
 import { BatchService } from '../../core/services/batch.service';
 import { ImportResult, StudentService } from '../../core/services/student.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
@@ -24,9 +25,10 @@ export class StudentImport {
   private readonly batchService = inject(BatchService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  protected readonly labels = inject(LabelService);
 
   protected readonly options: { id: Method; icon: IconName; title: string; desc: string }[] = [
-    { id: 'manual', icon: 'user-plus', title: 'Add one by one', desc: 'Name, parent number and batch. About 15 seconds each.' },
+    { id: 'manual', icon: 'user-plus', title: 'Add one by one', desc: 'Name, parent number and class or batch. About 15 seconds each.' },
     { id: 'file', icon: 'upload', title: 'Upload a list', desc: 'Already have your students in Excel? Save it as CSV and upload.' },
     { id: 'whatsapp', icon: 'whatsapp', title: 'Send us your register', desc: 'Share photos of your register on WhatsApp. We enter it within 24 hours.' },
   ];
@@ -88,7 +90,8 @@ export class StudentImport {
 
   protected downloadSample(): void {
     const batch = this.batches()[0]?.name ?? 'Class 10 · Maths';
-    const csv = `Name,Parent phone,Batch\nAarav Gupta,9876543210,${batch}\nAnanya Rao,9812345678,${batch}\n`;
+    const col = this.labels.l().group;
+    const csv = `Name,Parent phone,${col}\nAarav Gupta,9876543210,${batch}\nAnanya Rao,9812345678,${batch}\n`;
     const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
     const a = Object.assign(document.createElement('a'), { href: url, download: 'classkendra-students-sample.csv' });
     a.click();

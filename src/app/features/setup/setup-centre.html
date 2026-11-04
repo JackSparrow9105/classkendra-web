@@ -7,17 +7,31 @@
     <div class="steps" aria-hidden="true"><span class="done"></span><span></span></div>
   </div>
 
+  <fieldset class="plain stack">
+    <legend class="page-title" style="margin-bottom: 14px">What are you setting up?</legend>
+    <div class="type-grid" role="radiogroup" aria-label="Type">
+      @for (t of types; track t.id) {
+        <button type="button" class="type-card" role="radio" [class.on]="type() === t.id"
+                [attr.aria-checked]="type() === t.id" (click)="pickType(t.id)">
+          <span class="type-icon"><app-icon [name]="t.icon" [size]="22" /></span>
+          <strong>{{ t.title }}</strong>
+          <span>{{ t.sub }}</span>
+        </button>
+      }
+    </div>
+  </fieldset>
+
   <div>
-    <h1 class="page-title">About your centre</h1>
+    <h1 class="page-title" style="font-size: 20px">About your {{ l().orgLower }}</h1>
     <p class="page-sub">Parents will see this name in every message.</p>
   </div>
 
   <div class="stack">
     <div class="field">
-      <label class="label" for="name">Centre name</label>
-      <input id="name" class="input" formControlName="name" placeholder="e.g. Sharma Classes"
+      <label class="label" for="name">{{ l().org }} name</label>
+      <input id="name" class="input" formControlName="name" [placeholder]="l().orgNamePlaceholder"
              [class.invalid]="invalid('name')" autocomplete="organization">
-      @if (invalid('name')) { <span class="error-text">Enter your centre's name.</span> }
+      @if (invalid('name')) { <span class="error-text">Enter your {{ l().orgLower }}'s name.</span> }
     </div>
     <div class="grid-2">
       <div class="field">
@@ -33,20 +47,22 @@
     </div>
   </div>
 
-  <fieldset class="stack plain">
-    <legend class="label">What do you teach? <span class="muted hint">Pick all that apply</span></legend>
-    <div class="chips wrap">
-      @for (s of subjectOptions; track s) {
-        <button type="button" class="chip" [class.on]="subjects().includes(s)"
-                [attr.aria-pressed]="subjects().includes(s)" (click)="toggleSubject(s)">{{ s }}</button>
-      }
-    </div>
-  </fieldset>
+  @if (type() === 'Coaching') {
+    <fieldset class="stack plain">
+      <legend class="label">What do you teach? <span class="muted hint">Pick all that apply</span></legend>
+      <div class="chips wrap">
+        @for (s of subjectOptions; track s) {
+          <button type="button" class="chip" [class.on]="subjects().includes(s)"
+                  [attr.aria-pressed]="subjects().includes(s)" (click)="toggleSubject(s)">{{ s }}</button>
+        }
+      </div>
+    </fieldset>
+  }
 
   <fieldset class="stack plain">
     <legend class="label">How many students?</legend>
     <div class="size-grid">
-      @for (z of sizeOptions; track z) {
+      @for (z of l().sizeOptions; track z) {
         <button type="button" class="chip" [class.on]="size() === z" [attr.aria-pressed]="size() === z"
                 (click)="size.set(z)">{{ z }}</button>
       }

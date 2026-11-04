@@ -1,10 +1,12 @@
 <div class="page">
   <header class="page-head">
     <h1 class="page-title">Students</h1>
-    <div class="row" style="gap: 8px">
-      <a routerLink="/students/import" class="btn btn-outline sm">More ways to add</a>
-      <a routerLink="/students/new" class="btn btn-primary sm desktop-only"><app-icon name="plus" [size]="16" [stroke]="2" /> Add student</a>
-    </div>
+    @if (!auth.isTeacher()) {
+      <div class="row" style="gap: 8px">
+        <a routerLink="/students/import" class="btn btn-outline sm">More ways to add</a>
+        <a routerLink="/students/new" class="btn btn-primary sm desktop-only"><app-icon name="plus" [size]="16" [stroke]="2" /> Add student</a>
+      </div>
+    }
   </header>
 
   <div class="search">
@@ -15,7 +17,7 @@
   </div>
 
   @if (batches().length > 1) {
-    <div class="chips" role="group" aria-label="Filter by batch">
+    <div class="chips" role="group" [attr.aria-label]="'Filter by ' + labels.l().groupLower">
       <button type="button" class="chip dark" [class.on]="!batchId()" [attr.aria-pressed]="!batchId()" (click)="pickBatch('')">All</button>
       @for (b of batches(); track b.id) {
         <button type="button" class="chip dark" [class.on]="batchId() === b.id" [attr.aria-pressed]="batchId() === b.id"
@@ -29,7 +31,10 @@
       <span class="empty-icon"><app-icon name="users" [size]="26" /></span>
       @if (search() || batchId()) {
         <strong>No students match</strong>
-        <span class="muted">Try another name or batch.</span>
+        <span class="muted">Try another name or {{ labels.l().groupLower }}.</span>
+      } @else if (auth.isTeacher()) {
+        <strong>No students in your {{ labels.l().groupsLower }} yet</strong>
+        <span class="muted">The office adds students. Ask them if someone is missing.</span>
       } @else {
         <strong>No students yet</strong>
         <span class="muted">Add your first student. It takes about 15 seconds.</span>
@@ -40,19 +45,31 @@
     <span class="count muted">{{ list().length }} students</span>
     <div class="card card--list">
       @for (s of list(); track s.id) {
-        <a class="list-row row-link" [routerLink]="['/students', s.id]">
-          <span class="avatar">{{ initials(s.name) }}</span>
-          <div class="list-main">
-            <span class="list-title">{{ s.name }}</span>
-            <span class="list-sub">{{ batchName(s.batchId) }} · {{ formatPhone(s.parentPhone) }}</span>
+        @if (auth.isTeacher()) {
+          <div class="list-row">
+            <span class="avatar">{{ initials(s.name) }}</span>
+            <div class="list-main">
+              <span class="list-title">{{ s.name }}</span>
+              <span class="list-sub">{{ batchName(s.batchId) }} · {{ formatPhone(s.parentPhone) }}</span>
+            </div>
           </div>
-          <app-icon name="chevron-right" [size]="18" />
-        </a>
+        } @else {
+          <a class="list-row row-link" [routerLink]="['/students', s.id]">
+            <span class="avatar">{{ initials(s.name) }}</span>
+            <div class="list-main">
+              <span class="list-title">{{ s.name }}</span>
+              <span class="list-sub">{{ batchName(s.batchId) }} · {{ formatPhone(s.parentPhone) }}</span>
+            </div>
+            <app-icon name="chevron-right" [size]="18" />
+          </a>
+        }
       }
     </div>
   }
 </div>
 
-<a routerLink="/students/new" class="fab mobile-only" aria-label="Add student">
-  <app-icon name="plus" [size]="24" [stroke]="2.2" />
-</a>
+@if (!auth.isTeacher()) {
+  <a routerLink="/students/new" class="fab mobile-only" aria-label="Add student">
+    <app-icon name="plus" [size]="24" [stroke]="2.2" />
+  </a>
+}

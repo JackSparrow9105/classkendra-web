@@ -8,21 +8,23 @@
   </div>
 
   <nav class="side-nav">
-    @for (item of nav; track item.path) {
+    @for (item of nav(); track item.path) {
       <a [routerLink]="item.path" routerLinkActive="active" #rla="routerLinkActive"
          [attr.aria-current]="rla.isActive ? 'page' : null">
         <app-icon [name]="item.icon" />
         {{ item.label }}
       </a>
     }
-    <a routerLink="/settings" routerLinkActive="active" #rls="routerLinkActive"
-       [attr.aria-current]="rls.isActive ? 'page' : null">
-      <app-icon name="settings" />
-      Settings
-    </a>
+    @if (!auth.isTeacher()) {
+      <a routerLink="/settings" routerLinkActive="active" #rls="routerLinkActive"
+         [attr.aria-current]="rls.isActive ? 'page' : null">
+        <app-icon name="settings" />
+        Settings
+      </a>
+    }
   </nav>
 
-  @if (centre.trialDaysLeft() !== null) {
+  @if (auth.isOwner() && centre.trialDaysLeft() !== null) {
     <a class="trial" routerLink="/plans">
       <app-icon name="crown" [size]="18" />
       <span>Free trial · {{ centre.trialDaysLeft() }} days left</span>
@@ -34,8 +36,8 @@
   <router-outlet />
 </main>
 
-<nav class="bottom" aria-label="Main">
-  @for (item of nav; track item.path) {
+<nav class="bottom" aria-label="Main" [style.grid-template-columns]="'repeat(' + nav().length + ', minmax(0, 1fr))'">
+  @for (item of nav(); track item.path) {
     <a [routerLink]="item.path" routerLinkActive="active" #rlb="routerLinkActive"
        [attr.aria-current]="rlb.isActive ? 'page' : null">
       <app-icon [name]="item.icon" [size]="22" />

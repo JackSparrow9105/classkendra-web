@@ -13,12 +13,17 @@
 
   @if (batches().length === 0 && !loading()) {
     <div class="card stack" style="align-items: flex-start">
-      <strong>No batches yet</strong>
-      <span class="muted">Add a batch and students to start marking attendance.</span>
-      <a routerLink="/batches" class="btn btn-primary">Add batch</a>
+      @if (auth.isTeacher()) {
+        <strong>No {{ labels.l().groupsLower }} assigned to you yet</strong>
+        <span class="muted">Ask the office to add you to your {{ labels.l().groupsLower }}.</span>
+      } @else {
+        <strong>No {{ labels.l().groupsLower }} yet</strong>
+        <span class="muted">Add a {{ labels.l().groupLower }} and students to start marking attendance.</span>
+        <a routerLink="/batches" class="btn btn-primary">{{ labels.l().addGroup }}</a>
+      }
     </div>
   } @else {
-    <div class="chips" role="group" aria-label="Batch">
+    <div class="chips" role="group" [attr.aria-label]="labels.l().group">
       @for (b of batches(); track b.id) {
         <button type="button" class="chip dark" [class.on]="batchId() === b.id" [attr.aria-pressed]="batchId() === b.id"
                 (click)="pickBatch(b.id)">{{ b.name }}</button>
@@ -38,8 +43,8 @@
 
     @if (!loading() && students().length === 0) {
       <div class="card stack" style="align-items: flex-start">
-        <strong>No students in this batch</strong>
-        <a routerLink="/students/new" class="btn btn-outline sm">Add student</a>
+        <strong>No students in this {{ labels.l().groupLower }}</strong>
+        @if (!auth.isTeacher()) { <a routerLink="/students/new" class="btn btn-outline sm">Add student</a> }
       </div>
     }
 

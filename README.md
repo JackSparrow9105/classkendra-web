@@ -1,6 +1,6 @@
 # ClassKendra — Angular web app
 
-Mobile-first front end for ClassKendra (coaching centre fees, attendance and parent reminders).
+Mobile-first front end for ClassKendra: fees, attendance and WhatsApp parent reminders for **coaching centres and schools**.
 Angular 22 · standalone components · signals · reactive forms · SCSS · no UI library.
 
 It runs fully on its own today using an in-memory mock of the API, so every screen works before the .NET backend exists.
@@ -13,22 +13,58 @@ npm start          # http://localhost:4200
 ```
 
 Demo login: any 10-digit mobile number starting 6–9, then OTP **123456**.
-On the empty dashboard, tap **"Just exploring? Fill with sample data"** to see a busy centre.
+In setup, pick **Coaching or tuition centre** or **School**.
+On the empty dashboard, tap **"Just exploring? Fill with sample data"** to see a busy centre or school.
+To try a teacher login: as the owner add a teacher under Settings › Staff and teachers, sign out, and sign in with the teacher's number.
 Settings › **Reset demo data** starts again from sign-up.
 
 Production build: `npm run build` (output in `dist/classkendra-web/browser`).
+
+## Coaching and schools in one app
+
+| | Coaching centre | School |
+|---|---|---|
+| Groups | Batches (name, days, timing) | Classes with sections ("Class 8 · A") |
+| Fees | Fee heads; usually one monthly tuition fee per batch | Several heads: tuition per class, transport (opt-in), annual, exam… |
+| Who signs in | Owner, office staff, teachers | Same |
+
+All wording that differs ("Batch" / "Class", "Centre" / "School") lives in `src/app/core/labels.ts`.
+
+### Fee heads and when they fall due (`src/app/core/fees/schedule.ts`)
+
+| Frequency | Raised in |
+|---|---|
+| Monthly | every month |
+| Quarterly | session start, +3, +6, +9 months (April session: Apr, Jul, Oct, Jan) |
+| Term-wise (2 terms) | session start and +6 months |
+| Yearly | session start, or the joining month for mid-session admissions |
+| One-time | only the month a student joins (admission fee) |
+
+"Opted in" heads (transport) are charged only to students ticked on their profile. The API's nightly due job must follow the same rules.
+
+### Roles
+
+| | Owner | Office staff | Teacher |
+|---|---|---|---|
+| Dashboard, fees, students, setup | ✓ | ✓ | — |
+| Attendance | all groups | all groups | own classes only |
+| Students list | ✓ | ✓ | own classes, read-only |
+| Staff, plans and billing | ✓ | — | — |
+
+The API must enforce these too (filter by the teacher's `batchIds`); the UI hiding a button is not security.
 
 ## What's in it
 
 | Screen | Route | Notes |
 |---|---|---|
 | Sign in | `/login`, `/otp` | Mobile number + OTP, no password |
-| Setup (2 steps) | `/setup/centre`, `/setup/batches` | Centre details, then batches; lands on dashboard |
+| Setup (2 steps) | `/setup/centre`, `/setup/batches` | Coaching or school, details, then batches or classes with sections |
 | Dashboard | `/dashboard` | "Finish setting up" checklist until students and fees exist, then collected / pending / late fees; trial badge |
 | Students | `/students`, `/students/new`, `/students/:id` | Search, batch filter, "Save and add another", contact picker on Android |
 | Add students other ways | `/students/import` | One by one (default), CSV upload, or "send us your register" on WhatsApp |
-| Fee setup | `/fees/setup` | Monthly fee per batch, due day, reminder rules, live WhatsApp message preview |
-| Fees | `/fees` | Pending / Paid / All, month picker, tap a row to record cash/UPI or remind, "Remind all" |
+| Fee setup | `/fees/setup` | Fee heads (frequency, everyone or opted-in, amount per batch/class), due day, session start, reminders, message preview |
+| Fees | `/fees` | One row per student; Pending / Paid / All, month, class filter; tick which heads were paid; "Remind all" |
+| Staff | `/staff` | Add office staff or teachers (with their classes); they sign in with their own number |
 | Attendance | `/attendance` | Everyone present by default, tap absentees, save alerts parents |
 | Plans | `/plans` | Trial status, message usage, monthly/yearly plans |
 | Settings | `/settings` | Centre details, batches, fees, plans, sign out |
@@ -77,13 +113,14 @@ src/environments/environment.ts  ← useMock + apiUrl
 | POST | `/auth/verify` | OTP — returns `{ token, user }` (user.tenantId is null for a new owner) |
 | GET / POST / PUT | `/centre` | setup step 1, settings |
 | PUT | `/centre/setup-complete` | end of setup |
-| GET / POST | `/batches` · PUT / DELETE `/batches/{id}` | batches |
+| GET / POST | `/batches` · PUT / DELETE `/batches/{id}` | batches and school class-sections (teachers get only theirs) |
 | GET / POST | `/students` · GET / PUT / DELETE `/students/{id}` | students (DELETE = soft delete) |
 | POST | `/students/import` | import (server should accept .xlsx as multipart) |
-| GET | `/fees/settings` · PUT `/fees/setup` | fee setup |
-| GET | `/fees?month=&status=&search=` | fees list (Pending includes older unpaid months) |
-| POST | `/fees/{id}/remind` · `/fees/remind-all?month=` | reminders → Notifications outbox |
-| POST | `/fees/{id}/payments` | record cash/UPI payment |
+| GET / PUT | `/fees/setup` | `{ settings, heads }` — heads not in the PUT are deleted, their unpaid dues cancelled |
+| GET | `/fees?month=&status=&search=&batchId=` | one `StudentFees` row per student (Pending includes older unpaid months) |
+| POST | `/fees/remind` `{ studentIds }` · `/fees/remind-all?month=` | one WhatsApp per family listing what's unpaid → Notifications outbox |
+| POST | `/fees/payments` `{ dueIds, mode, paidOn }` | record cash/UPI payment for the ticked dues |
+| GET / POST | `/staff` · PUT / DELETE `/staff/{id}` | office staff and teachers |
 | GET / POST | `/attendance/{batchId}?date=` | attendance (save alerts only newly absent students) |
 | GET | `/dashboard` | dashboard summary |
 | GET | `/billing/plans` · POST `/billing/checkout` | plans |
@@ -91,5 +128,6 @@ src/environments/environment.ts  ← useMock + apiUrl
 ## Before going live
 
 - Remove `core/mock` and the demo-only bits (sample data button, reset demo data, OTP hint).
+- School plan prices in `core/services/billing.service.ts` (mock) are placeholders: confirm them with your first schools and serve real ones from the API.
 - Replace `SUPPORT_WHATSAPP` in `features/students/student-import.ts` with your number.
 - Add the Angular service worker (`ng add @angular/pwa`) so owners can install it on their phone.

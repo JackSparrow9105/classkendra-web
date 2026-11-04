@@ -1,0 +1,25 @@
+.member-row {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--divider);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+fieldset.plain {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+
+  legend {
+    padding: 0;
+    margin-bottom: 10px;
+  }
+}
+
+.danger {
+  color: var(--warn);
+}

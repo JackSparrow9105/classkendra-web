@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../../core/mock/mock-db';
+import { LabelService } from '../../core/labels';
 import { AuthService } from '../../core/services/auth.service';
 import { CentreService } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
@@ -25,11 +26,12 @@ interface SettingLink {
   styleUrl: './settings.scss',
 })
 export class Settings {
-  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly mock = inject(MockDb);
+  protected readonly auth = inject(AuthService);
   protected readonly centre = inject(CentreService);
+  protected readonly labels = inject(LabelService);
 
   protected readonly user = this.auth.user;
   protected readonly isDemo = environment.useMock;
@@ -37,12 +39,27 @@ export class Settings {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
 
-  protected readonly links: SettingLink[] = [
-    { path: '/batches', icon: 'cap', title: 'Batches', sub: 'Add, rename or change timings' },
-    { path: '/fees/setup', icon: 'wallet', title: 'Fees and reminders', sub: 'Monthly fees, due date, reminder rules' },
-    { path: '/plans', icon: 'crown', title: 'Plan and billing', sub: 'Trial, plans and message usage' },
-    { path: '/students/import', icon: 'upload', title: 'Import students', sub: 'Upload a list or send us your register' },
-  ];
+  /** What each role can open from Settings. Teachers only get their account. */
+  protected readonly links = computed<SettingLink[]>(() => {
+    if (this.auth.isTeacher()) return [];
+    const l = this.labels.l();
+    const office: SettingLink[] = [
+      { path: '/batches', icon: 'cap', title: l.groups, sub: this.labels.isSchool() ? 'Add classes and sections' : 'Add, rename or change timings' },
+      { path: '/fees/setup', icon: 'wallet', title: 'Fees and reminders', sub: 'Fee types, amounts, due date, reminder rules' },
+      { path: '/students/import', icon: 'upload', title: 'Import students', sub: 'Upload a list or send us your register' },
+    ];
+    if (!this.auth.isOwner()) return office;
+    return [
+      ...office,
+      { path: '/staff', icon: 'user-plus', title: 'Staff and teachers', sub: 'Who can sign in and what they can do' },
+      { path: '/plans', icon: 'crown', title: 'Plan and billing', sub: 'Trial, plans and message usage' },
+    ];
+  });
+
+  protected readonly roleText = computed(() => {
+    const r = this.auth.role();
+    return r === 'Owner' ? 'Owner' : r === 'Teacher' ? 'Teacher' : 'Office staff';
+  });
 
   protected readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -66,21 +83,19 @@ export class Settings {
     const c = this.centre.centre();
     if (!c || this.form.invalid) return;
     this.busy.set(true);
-    this.centre.save({ ...this.form.getRawValue(), subjects: c.subjects, sizeBand: c.sizeBand }).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.editing.set(false);
-        this.toast.show('Centre details saved');
-      },
-      error: (e) => {
-        this.busy.set(false);
-        this.error.set(errorMessage(e));
-      },
-    });
-  }
-
-  protected inviteStaff(): void {
-    this.toast.show('Staff invites come in the next version');
+    this.centre
+      .save({ ...this.form.getRawValue(), subjects: c.subjects, sizeBand: c.sizeBand, institutionType: c.institutionType })
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          this.editing.set(false);
+          this.toast.show(`${this.labels.l().org} details saved`);
+        },
+        error: (e) => {
+          this.busy.set(false);
+          this.error.set(errorMessage(e));
+        },
+      });
   }
 
   protected resetDemo(): void {

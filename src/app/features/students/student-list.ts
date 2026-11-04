@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Batch, Student } from '../../core/models/models';
+import { LabelService } from '../../core/labels';
+import { AuthService } from '../../core/services/auth.service';
 import { BatchService } from '../../core/services/batch.service';
 import { StudentService } from '../../core/services/student.service';
 import { initials } from '../../shared/format';
@@ -16,6 +18,8 @@ import { Icon } from '../../shared/icon';
 export class StudentList {
   private readonly students = inject(StudentService);
   private readonly batchService = inject(BatchService);
+  protected readonly labels = inject(LabelService);
+  protected readonly auth = inject(AuthService);
 
   protected readonly batches = signal<Batch[]>([]);
   protected readonly list = signal<Student[]>([]);

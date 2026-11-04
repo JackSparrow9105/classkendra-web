@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Batch } from '../../core/models/models';
+import { Batch, FeeHead } from '../../core/models/models';
+import { LabelService } from '../../core/labels';
 import { BatchService } from '../../core/services/batch.service';
+import { FeeService } from '../../core/services/fee.service';
+import { rupees } from '../../shared/format';
 import { StudentService } from '../../core/services/student.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { isoDate } from '../../shared/format';
@@ -26,6 +29,17 @@ export class StudentForm {
   private readonly batchService = inject(BatchService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly fees = inject(FeeService);
+  protected readonly labels = inject(LabelService);
+  protected readonly rupees = rupees;
+
+  /** Optional fees (transport…) and the ones this student has opted into. */
+  protected readonly optionalHeads = signal<FeeHead[]>([]);
+  protected readonly optedIn = signal<string[]>([]);
+  protected readonly batchIdValue = signal('');
+  protected readonly availableOptional = computed(() =>
+    this.optionalHeads().filter((h) => (h.amounts[this.batchIdValue()] ?? 0) > 0),
+  );
 
   /** Route param; undefined on /students/new. */
   readonly id = input<string>();
@@ -48,6 +62,8 @@ export class StudentForm {
   });
 
   constructor() {
+    this.form.controls.batchId.valueChanges.subscribe((v) => this.batchIdValue.set(v));
+    this.fees.getSetup().subscribe((s) => this.optionalHeads.set(s.heads.filter((h) => h.optional)));
     this.batchService.list().subscribe((list) => {
       this.batches.set(list);
       if (!this.form.controls.batchId.value && list.length === 1) this.form.patchValue({ batchId: list[0]!.id });
@@ -62,6 +78,7 @@ export class StudentForm {
           return;
         }
         this.form.patchValue(s);
+        this.optedIn.set(s.optionalHeadIds ?? []);
       });
     });
   }
@@ -88,12 +105,17 @@ export class StudentForm {
     }
   }
 
+  protected toggleOptional(id: string): void {
+    this.optedIn.update((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
+  }
+
   protected save(addAnother: boolean): void {
     this.submitted.set(true);
     this.error.set('');
     if (this.form.invalid) return;
     this.busy.set(true);
-    const value = this.form.getRawValue();
+    const available = new Set(this.availableOptional().map((h) => h.id));
+    const value = { ...this.form.getRawValue(), optionalHeadIds: this.optedIn().filter((id) => available.has(id)) };
     const id = this.id();
     const call$ = id ? this.students.update(id, value) : this.students.create(value);
     call$.subscribe({
@@ -104,7 +126,8 @@ export class StudentForm {
           this.toast.show(`${s.name} added`);
           this.submitted.set(false);
           // Keep batch and date: the next student is usually from the same batch.
-          this.form.reset({ ...value, name: '', parentName: '', parentPhone: '' });
+          this.form.reset({ ...this.form.getRawValue(), name: '', parentName: '', parentPhone: '' });
+          this.optedIn.set([]);
           document.getElementById('s-name')?.focus();
         } else {
           this.toast.show(id ? 'Changes saved' : `${s.name} added`);

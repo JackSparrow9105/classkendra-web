@@ -12,7 +12,7 @@
   @if (batches().length === 0) {
     <div class="note warn">
       <app-icon name="info" [size]="18" />
-      <span>Add a batch first, then you can add students to it. <a routerLink="/batches">Add batch</a></span>
+      <span>Add a {{ labels.l().groupLower }} first, then you can add students to it. <a routerLink="/batches">{{ labels.l().addGroup }}</a></span>
     </div>
   }
 
@@ -49,18 +49,31 @@
 
     <div class="grid-2">
       <div class="field">
-        <label class="label" for="s-batch">Batch</label>
+        <label class="label" for="s-batch">{{ labels.l().group }}</label>
         <select id="s-batch" class="input" formControlName="batchId" [class.invalid]="invalid('batchId')">
           <option value="" disabled>Choose</option>
           @for (b of batches(); track b.id) { <option [value]="b.id">{{ b.name }}</option> }
         </select>
-        @if (invalid('batchId')) { <span class="error-text">Choose a batch.</span> }
+        @if (invalid('batchId')) { <span class="error-text">Choose a {{ labels.l().groupLower }}.</span> }
       </div>
       <div class="field">
         <label class="label" for="s-joined">Joined on</label>
         <input id="s-joined" class="input" type="date" formControlName="joinedOn">
       </div>
     </div>
+
+    @if (availableOptional().length > 0) {
+      <fieldset class="optional-fees">
+        <legend class="label">Extra fees for this student</legend>
+        @for (h of availableOptional(); track h.id) {
+          <label class="opt-fee">
+            <input type="checkbox" [checked]="optedIn().includes(h.id)" (change)="toggleOptional(h.id)">
+            <span>{{ h.name }}</span>
+            <span class="muted">{{ rupees(h.amounts[batchIdValue()] ?? 0) }}</span>
+          </label>
+        }
+      </fieldset>
+    }
   </div>
 
   @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }

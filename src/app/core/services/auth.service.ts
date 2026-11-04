@@ -17,6 +17,9 @@ export class AuthService {
   readonly token = signal<string | null>(this.read<string>(TOKEN_KEY));
   readonly isLoggedIn = computed(() => !!this.token());
   readonly hasCentre = computed(() => !!this.user()?.tenantId);
+  readonly role = computed(() => this.user()?.role ?? 'Owner');
+  readonly isTeacher = computed(() => this.role() === 'Teacher');
+  readonly isOwner = computed(() => this.role() === 'Owner');
   /** Phone number carried from the login screen to the OTP screen. */
   readonly pendingPhone = signal('');
 
@@ -47,17 +50,25 @@ export class AuthService {
     this.user.set(null);
     this.remove(TOKEN_KEY);
     this.remove(USER_KEY);
-    if (environment.useMock) this.mock.update((s) => ((s.token = null), (s.user = null)));
+    // The mock keeps the owner record so the owner can sign back in to the same centre.
+    if (environment.useMock) this.mock.update((s) => (s.token = null));
   }
 
   private mockVerify(phone: string, code: string): Observable<AuthResponse> {
     if (code !== '123456') return this.mock.fail('That code is not right. In demo mode use 123456.');
     const s = this.mock.snapshot;
-    const user: AuthUser = s.user?.phone === phone
-      ? s.user
-      : { id: this.mock.id('usr'), phone, name: '', role: 'Owner', tenantId: s.centre?.id ?? null };
+    // A staff member or teacher added by the owner signs in with their own number and lands in the same centre.
+    const member = s.staff.find((m) => m.phone === phone);
+    const user: AuthUser = member
+      ? { id: member.id, phone, name: member.name, role: member.role, tenantId: s.centre?.id ?? null, batchIds: member.batchIds }
+      : s.user?.phone === phone && s.user.role === 'Owner'
+        ? s.user
+        : { id: this.mock.id('usr'), phone, name: '', role: 'Owner', tenantId: s.centre?.id ?? null, batchIds: [] };
     const res: AuthResponse = { token: 'mock-jwt-' + user.id, user };
-    this.mock.update((st) => ((st.token = res.token), (st.user = user)));
+    this.mock.update((st) => {
+      st.token = res.token;
+      if (user.role === 'Owner') st.user = user;
+    });
     return this.mock.respond(res, 600);
   }
 
@@ -70,7 +81,7 @@ export class AuthService {
   private saveUser(u: AuthUser): void {
     this.user.set(u);
     this.write(USER_KEY, u);
-    if (environment.useMock) this.mock.update((s) => (s.user = u));
+    if (environment.useMock && u.role === 'Owner') this.mock.update((s) => (s.user = u));
   }
 
   private read<T>(key: string): T | null {

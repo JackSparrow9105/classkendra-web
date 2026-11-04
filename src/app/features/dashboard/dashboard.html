@@ -28,7 +28,7 @@
             <strong>Add your students</strong>
             <span>
               @if (d.studentCount > 0) { {{ d.studentCount }} added · add more any time }
-              @else { Name, parent's WhatsApp number and batch }
+              @else { Name, parent's WhatsApp number and {{ labels.l().groupLower }} }
             </span>
           </span>
           <app-icon name="chevron-right" [size]="18" />
@@ -40,7 +40,7 @@
           </span>
           <span class="task-text">
             <strong>Set fees and reminders</strong>
-            <span>Monthly fee per batch and when to remind parents</span>
+            <span>Your fees and when to remind parents</span>
           </span>
           <app-icon name="chevron-right" [size]="18" />
         </a>
@@ -102,12 +102,12 @@
           <a routerLink="/fees">See all</a>
         </div>
         <div class="card card--list">
-          @for (n of d.needsAttention; track n.id) {
+          @for (n of d.needsAttention; track n.studentId) {
             <div class="list-row">
               <span class="avatar warn">{{ initials(n.studentName) }}</span>
               <div class="list-main">
                 <span class="list-title">{{ n.studentName }}</span>
-                <span class="list-sub warn-text">{{ rupees(n.amount) }} · {{ n.daysLate }} days late</span>
+                <span class="list-sub warn-text">{{ rupees(n.pending) }} · {{ n.maxDaysLate }} days late</span>
               </div>
               <button type="button" class="btn btn-outline sm" (click)="remind(n)">Remind</button>
             </div>

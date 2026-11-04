@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { DashboardSummary, FeeDueView } from '../../core/models/models';
+import { DashboardSummary, StudentFees } from '../../core/models/models';
 import { MockDb } from '../../core/mock/mock-db';
+import { LabelService } from '../../core/labels';
 import { CentreService } from '../../core/services/centre.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { FeeService } from '../../core/services/fee.service';
@@ -23,6 +24,7 @@ export class Dashboard {
   private readonly toast = inject(ToastService);
   private readonly mock = inject(MockDb);
   protected readonly centre = inject(CentreService);
+  protected readonly labels = inject(LabelService);
 
   protected readonly data = signal<DashboardSummary | null>(null);
   protected readonly reminding = signal(false);
@@ -64,8 +66,8 @@ export class Dashboard {
     });
   }
 
-  protected remind(due: FeeDueView): void {
-    this.fees.remind(due.id).subscribe(() => this.toast.show(`Reminder sent to ${due.studentName}'s parent`));
+  protected remind(row: StudentFees): void {
+    this.fees.remind([row.studentId]).subscribe(() => this.toast.show(`Reminder sent to ${row.studentName}'s parent`));
   }
 
   /** Demo mode only: fill the account with sample students, fees and payments. */

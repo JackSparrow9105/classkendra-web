@@ -3,7 +3,7 @@
     <div class="page-head">
       <div class="row">
         <a routerLink="/settings" class="icon-btn" aria-label="Back to settings"><app-icon name="chevron-left" /></a>
-        <h1 class="page-title">Batches</h1>
+        <h1 class="page-title">{{ labels.l().groups }}</h1>
       </div>
     </div>
   } @else {
@@ -15,8 +15,8 @@
       <div class="steps" aria-hidden="true"><span class="done"></span><span class="done"></span></div>
     </div>
     <div>
-      <h1 class="page-title">Add your batches</h1>
-      <p class="page-sub">A batch is a group of students who study together at the same time.</p>
+      <h1 class="page-title">Add your {{ labels.l().groupsLower }}</h1>
+      <p class="page-sub">{{ labels.l().groupHint }}</p>
     </div>
   }
 
@@ -29,7 +29,9 @@
         <span class="batch-icon"><app-icon name="cap" /></span>
         <div class="batch-text">
           <strong>{{ b.name }}</strong>
-          <span>{{ b.days }} · {{ formatTime(b.startTime) }}–{{ formatTime(b.endTime) }}</span>
+          @if (b.startTime && b.endTime) {
+            <span>{{ b.days }} · {{ formatTime(b.startTime) }}–{{ formatTime(b.endTime) }}</span>
+          }
         </div>
         <button type="button" class="icon-btn plain" [attr.aria-label]="'Edit ' + b.name" (click)="open(b)">
           <app-icon name="edit" [size]="18" />
@@ -37,48 +39,70 @@
       </div>
     }
     <button type="button" class="btn btn-dashed block" (click)="open('new')">
-      <app-icon name="plus" [size]="18" [stroke]="2" /> Add batch
+      <app-icon name="plus" [size]="18" [stroke]="2" /> {{ labels.l().addGroup }}
     </button>
   </div>
 
   <div class="note">
     <app-icon name="info" [size]="18" />
-    <span>You'll set fees for each batch later, from the dashboard.</span>
+    <span>You'll set fees later, from the dashboard.</span>
   </div>
 
   @if (!manage()) {
     <div class="spacer"></div>
     <button type="button" class="btn btn-primary lg block" [disabled]="batches().length === 0 || busy()" (click)="finish()">
-      @if (batches().length === 0) { Add at least one batch } @else { Finish and go to dashboard }
+      @if (batches().length === 0) { Add at least one {{ labels.l().groupLower }} } @else { Finish and go to dashboard }
     </button>
   }
 </div>
 
 @if (editing(); as current) {
-  <app-bottom-sheet [title]="current === 'new' ? 'New batch' : 'Edit batch'" (closed)="editing.set(null)">
+  <app-bottom-sheet [title]="(current === 'new' ? 'New ' : 'Edit ') + labels.l().groupLower" (closed)="editing.set(null)">
     <form class="stack" [formGroup]="form" (ngSubmit)="save()" novalidate>
-      <div class="field">
-        <label class="label" for="b-name">Batch name</label>
-        <input id="b-name" class="input" formControlName="name" placeholder="e.g. Class 10 · Maths"
-               [class.invalid]="submitted() && form.controls.name.invalid">
-        @if (submitted() && form.controls.name.invalid) { <span class="error-text">Give the batch a name.</span> }
-      </div>
-      <div class="field">
-        <label class="label" for="b-days">Days</label>
-        <select id="b-days" class="input" formControlName="days">
-          @for (d of dayOptions; track d) { <option [value]="d">{{ d }}</option> }
-        </select>
-      </div>
-      <div class="time-grid">
+      @if (labels.isSchool()) {
         <div class="field">
-          <label class="label" for="b-start">Starts</label>
-          <input id="b-start" class="input" type="time" formControlName="startTime">
+          <label class="label" for="b-class">Class</label>
+          <select id="b-class" class="input" formControlName="className">
+            @for (c of classOptions; track c) { <option [value]="c">{{ classLabel(c) }}</option> }
+          </select>
+        </div>
+        <fieldset class="plain stack">
+          <legend class="label">
+            {{ current === 'new' ? 'Sections' : 'Section' }}
+            @if (current === 'new') { <span class="muted hint">Pick all sections this class has</span> }
+          </legend>
+          <div class="section-pick">
+            @for (s of sectionOptions; track s) {
+              <button type="button" class="chip" [class.on]="sections().includes(s)" [attr.aria-pressed]="sections().includes(s)"
+                      (click)="toggleSection(s)">{{ s }}</button>
+            }
+          </div>
+          <span class="muted" style="font-size: 12px">No sections? Leave all unselected.</span>
+        </fieldset>
+      } @else {
+        <div class="field">
+          <label class="label" for="b-name">Batch name</label>
+          <input id="b-name" class="input" formControlName="name" placeholder="e.g. Class 10 · Maths"
+                 [class.invalid]="submitted() && !form.controls.name.value.trim()">
+          @if (submitted() && !form.controls.name.value.trim()) { <span class="error-text">Give the batch a name.</span> }
         </div>
         <div class="field">
-          <label class="label" for="b-end">Ends</label>
-          <input id="b-end" class="input" type="time" formControlName="endTime">
+          <label class="label" for="b-days">Days</label>
+          <select id="b-days" class="input" formControlName="days">
+            @for (d of dayOptions; track d) { <option [value]="d">{{ d }}</option> }
+          </select>
         </div>
-      </div>
+        <div class="time-grid">
+          <div class="field">
+            <label class="label" for="b-start">Starts</label>
+            <input id="b-start" class="input" type="time" formControlName="startTime">
+          </div>
+          <div class="field">
+            <label class="label" for="b-end">Ends</label>
+            <input id="b-end" class="input" type="time" formControlName="endTime">
+          </div>
+        </div>
+      }
       @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
       <div class="sheet-actions">
         @if (current !== 'new') {
@@ -86,7 +110,10 @@
             <app-icon name="trash" [size]="18" /> Delete
           </button>
         }
-        <button type="submit" class="btn btn-primary lg" [disabled]="busy()">Save batch</button>
+        <button type="submit" class="btn btn-primary lg" [disabled]="busy()">
+          @if (labels.isSchool() && current === 'new' && sections().length > 1) { Add {{ sections().length }} sections }
+          @else { Save {{ labels.l().groupLower }} }
+        </button>
       </div>
     </form>
   </app-bottom-sheet>

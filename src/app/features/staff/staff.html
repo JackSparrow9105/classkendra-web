@@ -1,0 +1,90 @@
+<div class="page">
+  <header class="page-head">
+    <div class="row">
+      <a routerLink="/settings" class="icon-btn" aria-label="Back to settings"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">Staff</h1>
+    </div>
+    <button type="button" class="btn btn-primary sm" (click)="open('new')">
+      <app-icon name="plus" [size]="16" [stroke]="2" /> Add
+    </button>
+  </header>
+  <p class="page-sub" style="margin-top: -8px">
+    Teachers mark attendance for their own {{ labels.l().groupsLower }}. Office staff can also handle fees and students.
+  </p>
+
+  <div class="card card--list">
+    <div class="list-row">
+      <span class="avatar accent">{{ initials(centre.centre()?.ownerName || 'You') }}</span>
+      <div class="list-main">
+        <span class="list-title">{{ centre.centre()?.ownerName || 'You' }}</span>
+        <span class="list-sub">Everything, including billing and staff</span>
+      </div>
+      <span class="badge accent">Owner</span>
+    </div>
+    @for (m of members(); track m.id) {
+      <button type="button" class="list-row member-row" (click)="open(m)">
+        <span class="avatar">{{ initials(m.name) }}</span>
+        <span class="list-main">
+          <span class="list-title">{{ m.name }}</span>
+          <span class="list-sub">{{ groupsOf(m) }}</span>
+        </span>
+        <span class="badge" [class.ok]="m.role === 'Teacher'">{{ m.role === 'Teacher' ? 'Teacher' : 'Office' }}</span>
+      </button>
+    }
+  </div>
+
+  @if (members().length === 0) {
+    <div class="note">
+      <app-icon name="info" [size]="18" />
+      <span>Add your teachers so they can mark attendance from their own phones.</span>
+    </div>
+  }
+</div>
+
+@if (editing(); as current) {
+  <app-bottom-sheet [title]="current === 'new' ? 'Add staff' : 'Edit staff'" (closed)="editing.set(null)">
+    <form class="stack" [formGroup]="form" (ngSubmit)="save()" novalidate style="gap: 14px">
+      <div class="seg" role="radiogroup" aria-label="Role">
+        <button type="button" role="radio" [class.on]="role() === 'Teacher'" [attr.aria-checked]="role() === 'Teacher'" (click)="role.set('Teacher')">Teacher</button>
+        <button type="button" role="radio" [class.on]="role() === 'Staff'" [attr.aria-checked]="role() === 'Staff'" (click)="role.set('Staff')">Office staff</button>
+      </div>
+      <div class="field">
+        <label class="label" for="m-name">Name</label>
+        <input id="m-name" class="input" formControlName="name" placeholder="Full name"
+               [class.invalid]="submitted() && form.controls.name.invalid">
+      </div>
+      <div class="field">
+        <label class="label" for="m-phone">Mobile number</label>
+        <div class="input-group" [style.border-color]="submitted() && form.controls.phone.invalid ? 'var(--warn)' : null">
+          <span class="prefix">+91</span>
+          <input id="m-phone" type="tel" inputmode="numeric" formControlName="phone" placeholder="98765 43210" (input)="onPhoneInput()">
+        </div>
+        @if (submitted() && form.controls.phone.invalid) { <span class="error-text">Enter a 10-digit mobile number.</span> }
+        <span class="muted" style="font-size: 12px">They sign in with this number. We'll send them the app link on WhatsApp.</span>
+      </div>
+
+      @if (role() === 'Teacher') {
+        <fieldset class="plain stack">
+          <legend class="label">{{ labels.l().groups }} they teach</legend>
+          <div class="chips wrap">
+            @for (b of batches(); track b.id) {
+              <button type="button" class="chip" [class.on]="picked().includes(b.id)" [attr.aria-pressed]="picked().includes(b.id)"
+                      (click)="togglePick(b.id)">{{ b.name }}</button>
+            }
+          </div>
+        </fieldset>
+      }
+
+      @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
+
+      <div class="row" style="gap: 10px">
+        @if (current !== 'new') {
+          <button type="button" class="btn btn-outline danger" (click)="remove()"><app-icon name="trash" [size]="18" /> Remove</button>
+        }
+        <button type="submit" class="btn btn-primary lg" style="flex: 1" [disabled]="busy()">
+          {{ current === 'new' ? 'Add and send invite' : 'Save' }}
+        </button>
+      </div>
+    </form>
+  </app-bottom-sheet>
+}

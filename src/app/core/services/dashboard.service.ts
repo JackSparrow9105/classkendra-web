@@ -5,7 +5,7 @@ import { MockDb } from '../mock/mock-db';
 import { DashboardSummary } from '../models/models';
 import { daysBetween, isoDate, monthKey } from '../../shared/format';
 import { ApiService } from './api.service';
-import { toView } from './fee.service';
+import { groupByStudent } from './fee.service';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
@@ -26,14 +26,14 @@ export class DashboardService {
       return n >= 0 && n <= 7;
     });
 
-    const activeIds = new Set(s.students.filter((x) => x.active).map((x) => x.id));
+    const active = s.students.filter((x) => x.active);
+    const activeIds = new Set(active.map((x) => x.id));
     let marked = 0;
     let absent = 0;
     for (const b of s.batches) {
       const sheet = s.attendance[`${b.id}|${today}`];
       if (!sheet) continue;
-      const inBatch = s.students.filter((x) => x.active && x.batchId === b.id).length;
-      marked += inBatch;
+      marked += active.filter((x) => x.batchId === b.id).length;
       absent += sheet.filter((id) => activeIds.has(id)).length;
     }
 
@@ -44,15 +44,14 @@ export class DashboardService {
       pending: pendingAll.reduce((t, d) => t + d.amount, 0),
       pendingCount: new Set(pendingAll.map((d) => d.studentId)).size,
       dueThisWeek: dueSoon.reduce((t, d) => t + d.amount, 0),
-      dueThisWeekCount: dueSoon.length,
+      dueThisWeekCount: new Set(dueSoon.map((d) => d.studentId)).size,
       presentToday: marked - absent,
       markedToday: marked,
       studentCount: activeIds.size,
-      feesConfigured: !!s.feeSettings && s.batches.some((b) => !!b.monthlyFee),
-      needsAttention: pendingAll
-        .map((d) => toView(d, s))
-        .filter((v) => v.daysLate > 0)
-        .sort((a, b) => b.daysLate - a.daysLate)
+      feesConfigured: !!s.feeSettings && s.heads.some((h) => Object.values(h.amounts).some((a) => a > 0)),
+      needsAttention: groupByStudent(pendingAll, s)
+        .filter((r) => r.maxDaysLate > 0)
+        .sort((a, b) => b.maxDaysLate - a.maxDaysLate)
         .slice(0, 4),
     };
     return this.mock.respond(summary, 200);

@@ -71,6 +71,41 @@
 }
 
 /* Form */
+.optional-fees {
+  border: none;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--divider);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  legend {
+    padding: 0;
+    margin-bottom: 6px;
+  }
+}
+
+.opt-fee {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+
+  input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+  }
+
+  span:first-of-type {
+    flex: 1;
+  }
+}
+
 .contact-btn {
   height: 50px;
 }

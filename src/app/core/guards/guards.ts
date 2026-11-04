@@ -22,8 +22,15 @@ export const centreGuard: CanActivateFn = () => {
   return auth.hasCentre() ? true : inject(Router).parseUrl('/setup/centre');
 };
 
-/** Owner-only pages (billing, staff). Staff accounts are redirected home. */
+/** Owner-only pages (billing, staff). Others are sent to their home screen. */
 export const ownerGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
-  return auth.user()?.role === 'Owner' ? true : inject(Router).parseUrl('/dashboard');
+  if (auth.isOwner()) return true;
+  return inject(Router).parseUrl(auth.isTeacher() ? '/attendance' : '/dashboard');
+};
+
+/** Money and setup pages are for the owner and office staff. Teachers only mark attendance and see their students. */
+export const officeGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.isTeacher() ? inject(Router).parseUrl('/attendance') : true;
 };

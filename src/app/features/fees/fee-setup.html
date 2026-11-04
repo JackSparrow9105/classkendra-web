@@ -6,34 +6,102 @@
     </div>
   </header>
 
-  <section class="stack">
-    <h2 class="label">Monthly fee for each batch</h2>
-    @if (batches().length === 0) {
-      <div class="note warn"><span>Add a batch first. <a routerLink="/batches">Add batch</a></span></div>
-    } @else {
-      <div class="card card--list">
-        @for (b of batches(); track b.id) {
-          <div class="fee-row">
-            <label [for]="'fee-' + b.id">{{ b.name }}</label>
-            <div class="amount">
-              <span>₹</span>
-              <input [id]="'fee-' + b.id" type="text" inputmode="numeric" placeholder="0"
-                     [ngModel]="amounts()[b.id]" (ngModelChange)="setAmount(b.id, $event)">
-              <span class="per">/month</span>
-            </div>
-          </div>
+  @if (loaded() && batches().length === 0) {
+    <div class="note warn"><span>Add a {{ labels.l().groupLower }} first. <a routerLink="/batches">{{ labels.l().addGroup }}</a></span></div>
+  }
+
+  @for (h of heads(); track h.key; let i = $index) {
+    <section class="card head-card" [attr.aria-label]="h.name || 'New fee'">
+      <div class="head-top">
+        <div class="field" style="flex: 1">
+          <label class="sr-only" [for]="'hn-' + h.key">Fee name</label>
+          <input [id]="'hn-' + h.key" class="input head-name" placeholder="Fee name, e.g. Lab fee"
+                 [ngModel]="h.name" (ngModelChange)="updateHead(h.key, { name: $event })">
+        </div>
+        @if (heads().length > 1) {
+          <button type="button" class="icon-btn plain" [attr.aria-label]="'Remove ' + (h.name || 'fee')" (click)="removeHead(h)">
+            <app-icon name="trash" [size]="18" />
+          </button>
         }
       </div>
-    }
-  </section>
 
-  <div class="card due-row">
-    <label for="due-day" class="muted">Fee due on</label>
-    <div class="row" style="gap: 6px">
-      <select id="due-day" class="input compact" [ngModel]="settings().dueDay" (ngModelChange)="setDueDay($event)">
-        @for (d of dueDays; track d) { <option [ngValue]="d">{{ d }}</option> }
+      <div class="grid-2">
+        <div class="field">
+          <label class="label" [for]="'hf-' + h.key">How often</label>
+          <select [id]="'hf-' + h.key" class="input" [ngModel]="h.frequency" (ngModelChange)="updateHead(h.key, { frequency: $event })">
+            @for (f of frequencies; track f[0]) { <option [value]="f[0]">{{ f[1] }}</option> }
+          </select>
+        </div>
+        <div class="field">
+          <span class="label">Who pays</span>
+          <div class="seg" role="radiogroup" [attr.aria-label]="'Who pays ' + h.name">
+            <button type="button" role="radio" [class.on]="!h.optional" [attr.aria-checked]="!h.optional"
+                    (click)="updateHead(h.key, { optional: false })">Everyone</button>
+            <button type="button" role="radio" [class.on]="h.optional" [attr.aria-checked]="h.optional"
+                    (click)="updateHead(h.key, { optional: true })">Opted in</button>
+          </div>
+        </div>
+      </div>
+      @if (h.optional) {
+        <span class="muted small-note">Only students you tick on their profile pay this (like transport).</span>
+      }
+
+      @if (groups().length > 1) {
+        <button type="button" class="switch-row compact-switch" role="switch" [attr.aria-checked]="h.sameForAll"
+                (click)="updateHead(h.key, { sameForAll: !h.sameForAll })">
+          Same amount for all {{ labels.l().groupsLower }}
+          <span class="switch" [class.on]="h.sameForAll"></span>
+        </button>
+      }
+
+      <div class="amounts">
+        @if (h.sameForAll && groups().length > 1) {
+          <div class="fee-row">
+            <label [for]="'ha-' + h.key">All {{ labels.l().groupsLower }}</label>
+            <div class="amount">
+              <span>₹</span>
+              <input [id]="'ha-' + h.key" type="text" inputmode="numeric" placeholder="0"
+                     [ngModel]="h.amount" (ngModelChange)="setAmount(h, null, $event)">
+            </div>
+          </div>
+        } @else {
+          @for (g of groups(); track g.key) {
+            <div class="fee-row">
+              <label [for]="'ha-' + h.key + '-' + g.key">{{ g.label }}</label>
+              <div class="amount">
+                <span>₹</span>
+                <input [id]="'ha-' + h.key + '-' + g.key" type="text" inputmode="numeric" placeholder="0"
+                       [ngModel]="h.amounts[g.key]" (ngModelChange)="setAmount(h, g.key, $event)">
+              </div>
+            </div>
+          }
+        }
+      </div>
+      @if (groups().length > 1 && !h.sameForAll) {
+        <span class="muted small-note">Leave a {{ labels.l().groupLower }} empty if it doesn't pay this fee.</span>
+      }
+    </section>
+  }
+
+  <button type="button" class="btn btn-dashed block" (click)="addHead()">
+    <app-icon name="plus" [size]="18" [stroke]="2" /> Add another fee
+  </button>
+
+  <div class="card card--list">
+    <div class="due-row">
+      <label for="due-day" class="muted">Fees due on</label>
+      <div class="row" style="gap: 6px">
+        <select id="due-day" class="input compact" [ngModel]="settings().dueDay" (ngModelChange)="setSetting('dueDay', $event)">
+          @for (d of dueDays; track d) { <option [ngValue]="d">{{ d }}</option> }
+        </select>
+        <span class="muted">of the month</span>
+      </div>
+    </div>
+    <div class="due-row">
+      <label for="session" class="muted">Session starts in</label>
+      <select id="session" class="input compact wide" [ngModel]="settings().sessionStartMonth" (ngModelChange)="setSetting('sessionStartMonth', $event)">
+        @for (m of months; track m.value) { <option [ngValue]="m.value">{{ m.name }}</option> }
       </select>
-      <span class="muted">of every month</span>
     </div>
   </div>
 

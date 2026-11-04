@@ -7,7 +7,7 @@ import { daysBetween, isoDate } from '../../shared/format';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
-export type CentreInput = Pick<Centre, 'name' | 'ownerName' | 'city' | 'subjects' | 'sizeBand'>;
+export type CentreInput = Pick<Centre, 'name' | 'ownerName' | 'city' | 'subjects' | 'sizeBand' | 'institutionType'>;
 
 @Injectable({ providedIn: 'root' })
 export class CentreService {
@@ -63,7 +63,6 @@ export class CentreService {
       : {
           id: this.mock.id('ten'),
           ...input,
-          institutionType: 'Coaching',
           plan: 'Trial',
           trialEndsOn: isoDate(trialEnd),
           messagesUsed: 0,

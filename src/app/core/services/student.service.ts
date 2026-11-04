@@ -4,6 +4,7 @@ import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
 import { Student, StudentImportRow } from '../models/models';
 import { ApiService } from './api.service';
+import { AuthService } from './auth.service';
 
 export type StudentInput = Omit<Student, 'id' | 'active'>;
 
@@ -16,13 +17,19 @@ export interface ImportResult {
 export class StudentService {
   private readonly api = inject(ApiService);
   private readonly mock = inject(MockDb);
+  private readonly auth = inject(AuthService);
 
-  /** GET /students?batchId=&search= (the real API should paginate: &page=&pageSize=) */
+  /**
+   * GET /students?batchId=&search=
+   * The real API should paginate (&page=&pageSize=) for large schools, and limit teachers to their own classes.
+   */
   list(filter: { batchId?: string; search?: string } = {}): Observable<Student[]> {
     if (!environment.useMock) return this.api.get<Student[]>('students', filter);
     const q = (filter.search ?? '').trim().toLowerCase();
+    const user = this.auth.user();
     const rows = this.mock.snapshot.students
       .filter((s) => s.active)
+      .filter((s) => user?.role !== 'Teacher' || user.batchIds.includes(s.batchId))
       .filter((s) => !filter.batchId || s.batchId === filter.batchId)
       .filter((s) => !q || s.name.toLowerCase().includes(q) || s.parentPhone.includes(q))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -54,7 +61,13 @@ export class StudentService {
     let updated!: Student;
     this.mock.update((s) => {
       s.students = s.students.map((st) => (st.id === id ? (updated = { ...st, ...input }) : st));
+      // Opted out of an optional fee (e.g. stopped using transport): cancel its unpaid dues.
+      const optionalIds = new Set(s.heads.filter((h) => h.optional).map((h) => h.id));
+      s.dues = s.dues.filter(
+        (d) => !(d.studentId === id && d.status === 'Pending' && optionalIds.has(d.feeHeadId) && !input.optionalHeadIds.includes(d.feeHeadId)),
+      );
     });
+    this.mock.ensureDues();
     return this.mock.respond(updated);
   }
 
@@ -76,11 +89,13 @@ export class StudentService {
     const batches = this.mock.snapshot.batches;
     this.mock.update((s) => {
       rows.forEach((r, i) => {
-        const batch = batches.find((b) => b.name.toLowerCase() === r.batchName.trim().toLowerCase());
+        // Loose match so "Class 8 · A", "8-A" and "8A" all find the same class.
+        const norm = (v: string) => v.toLowerCase().replace(/class/g, '').replace(/[^a-z0-9]/g, '');
+        const batch = batches.find((b) => norm(b.name) === norm(r.batchName));
         const phone = r.parentPhone.replace(/\D/g, '').slice(-10);
         if (!r.name.trim()) return result.skipped.push({ row: i + 2, reason: 'Name is empty' });
         if (phone.length !== 10) return result.skipped.push({ row: i + 2, reason: 'Phone number is not 10 digits' });
-        if (!batch) return result.skipped.push({ row: i + 2, reason: `No batch called "${r.batchName}"` });
+        if (!batch) return result.skipped.push({ row: i + 2, reason: `"${r.batchName}" doesn't match any batch or class` });
         s.students.push({
           id: this.mock.id('stu'),
           name: r.name.trim(),
@@ -89,6 +104,7 @@ export class StudentService {
           batchId: batch.id,
           joinedOn: new Date().toISOString().slice(0, 10),
           active: true,
+          optionalHeadIds: [],
         });
         result.added++;
         return;
