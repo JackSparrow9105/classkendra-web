@@ -2,6 +2,6 @@
 // Every service then calls `${apiUrl}/...` instead of the in-memory mock.
 export const environment = {
   production: false,
-  useMock: true,
-  apiUrl: 'https://localhost:7001/api/v1',
+  useMock: false,
+  apiUrl: 'https://localhost:7062/api/v1',
 };
