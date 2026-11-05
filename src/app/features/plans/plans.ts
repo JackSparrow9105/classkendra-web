@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Plan } from '../../core/models/models';
 import { BillingCycle, BillingService } from '../../core/services/billing.service';
 import { CentreService } from '../../core/services/centre.service';
@@ -43,6 +43,15 @@ export class Plans {
   constructor() {
     this.billing.plans().subscribe((p) => this.plans.set(p));
     this.centre.load().subscribe();
+
+    // Back from the Razorpay payment page: the webhook switches the plan on within a few seconds.
+    const status = inject(ActivatedRoute).snapshot.queryParamMap.get('razorpay_payment_link_status');
+    if (status === 'paid') {
+      this.toast.show('Payment received. Your plan will be updated in a moment. Thank you!');
+      setTimeout(() => this.centre.load().subscribe(), 5000);
+    } else if (status) {
+      this.error.set('The payment was not completed. You have not been charged; please try again.');
+    }
   }
 
   protected perMonth(p: Plan): number {

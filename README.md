@@ -144,7 +144,7 @@ src/environments/environment.ts  ← useMock + apiUrl
 | GET | `/payments/{id}` | one receipt |
 | GET | `/students/{id}/fees` | student fee history: bills, receipts, balance |
 | POST / DELETE | `/students/{id}/concessions` · `/students/{id}/concessions/{cid}` | add or remove a discount |
-| GET | `/reports/collection?month=` · `/reports/collection.xlsx?month=` | collection report and its Excel file (build with ClosedXML) |
+| GET | `/reports/collection?month=` | collection report (the Excel file is built in the browser from it) |
 | GET / POST | `/staff` · PUT / DELETE `/staff/{id}` | office staff and teachers |
 | POST | `/students/promote` `{ moves, keepBackStudentIds }` | promote to next class (one transaction) |
 | GET | `/messages?type=&status=&studentId=&search=` · `/messages/summary` | message log |
@@ -152,10 +152,11 @@ src/environments/environment.ts  ← useMock + apiUrl
 | PUT | `/centre/message-language` `{ language }` | parent messages in English or Hindi |
 | GET | `/public/pay/{token}` | parent payment page data (public, rate-limited) |
 | POST | `/public/pay/{token}/order` `{ dueIds }` | create a Razorpay order |
-| GET | `/public/pay/{token}/orders/{orderId}` | receipt once the Razorpay webhook has arrived |
-| GET / POST | `/attendance/{batchId}?date=` | attendance (save alerts only newly absent students) |
+| POST | `/public/pay/{token}/verify` | Razorpay Checkout success → records the payment, returns the receipt |
+| GET | `/public/pay/{token}/orders/{orderId}` | receipt once recorded (404 before) — fallback after the webhook |
+| GET / POST | `/attendance/{batchId}?date=` | attendance (save alerts only newly absent students, today only) |
 | GET | `/dashboard` | dashboard summary |
-| GET | `/billing/plans` · POST `/billing/checkout` | plans |
+| GET | `/billing/plans` · POST `/billing/checkout` | plans; checkout returns a Razorpay Payment Link, the webhook switches the plan on |
 
 ## Before going live
 

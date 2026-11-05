@@ -70,6 +70,7 @@
         <button type="button" class="btn btn-primary lg block" [disabled]="paying() || selectedTotal() === 0" (click)="payNow()">
           {{ paying() ? ('Opening payment…' | t) : ('Pay {amount}' | t: { amount: rupees(selectedTotal()) }) }}
         </button>
+        @if (error()) { <p class="pay-error" role="alert">{{ error() }}</p> }
         <span class="secure muted small"><app-icon name="lock" [size]="14" [stroke]="2" /> {{ 'Secure payment · receipt sent on WhatsApp' | t }}</span>
       </div>
     }
