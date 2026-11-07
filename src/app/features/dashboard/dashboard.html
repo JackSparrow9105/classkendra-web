@@ -1,7 +1,7 @@
-<div class="page">
+<div class="page dash">
   <header class="page-head">
     <div class="hello">
-      <span class="muted">{{ greeting | t }}</span>
+      <span class="muted">{{ greeting | t }}<span class="desk-inline"> · {{ today }}</span></span>
       <h1 class="page-title">{{ centre.centre()?.name }}</h1>
     </div>
     <div class="row head-actions">
@@ -11,6 +11,8 @@
         </a>
       }
       <a routerLink="/settings" class="icon-btn mobile-only" [attr.aria-label]="'Settings' | t"><app-icon name="settings" /></a>
+      <a routerLink="/attendance" class="btn btn-outline head-btn desk-flex">{{ 'Mark attendance' | t }}</a>
+      <a routerLink="/fees" class="btn btn-primary head-btn desk-flex">+ {{ 'Collect fee' | t }}</a>
     </div>
   </header>
 
@@ -53,35 +55,62 @@
 
     @if (d.feesConfigured) {
       <section class="hero" aria-label="Fees this month">
-        <div class="row" style="justify-content: space-between">
-          <a routerLink="/reports" class="hero-label report-link">{{ 'Collected in {month}' | t: { month: monthName(d.month) } }} <app-icon name="chevron-right" [size]="14" /></a>
-          <span class="pct">{{ collectedPct() }}% of {{ rupees(d.expected) }}</span>
-        </div>
-        <span class="hero-amount">{{ rupees(d.collected) }}</span>
-        <div class="progress" role="progressbar" [attr.aria-valuenow]="collectedPct()" aria-valuemin="0" aria-valuemax="100">
-          <span [style.width.%]="collectedPct()"></span>
-        </div>
-        <div class="row hero-foot">
-          <div class="stack" style="gap: 2px">
-            <span class="hero-label">{{ 'Still pending' | t }}</span>
-            <span class="hero-pending">{{ rupees(d.pending) }} · {{ '{n} students' | t: { n: d.pendingCount } }}</span>
+        <div class="hero-main">
+          <div class="row" style="justify-content: space-between">
+            <a routerLink="/reports" class="hero-label report-link">{{ 'Collected in {month}' | t: { month: monthName(d.month) } }} <app-icon name="chevron-right" [size]="14" /></a>
+            <span class="pct">{{ collectedPct() }}% of {{ rupees(d.expected) }}</span>
           </div>
-          @if (d.pendingCount > 0) {
-            <button type="button" class="btn btn-primary" [disabled]="reminding()" (click)="remindAll()">
-              {{ (reminding() ? 'Sending…' : 'Remind all') | t }}
-            </button>
-          }
+          <span class="hero-amount">{{ rupees(d.collected) }}</span>
+          <div class="progress" role="progressbar" [attr.aria-valuenow]="collectedPct()" aria-valuemin="0" aria-valuemax="100">
+            <span [style.width.%]="collectedPct()"></span>
+          </div>
+          <div class="row hero-foot">
+            <div class="stack" style="gap: 2px">
+              <span class="hero-label">{{ 'Still pending' | t }}</span>
+              <span class="hero-pending">{{ rupees(d.pending) }} · {{ '{n} students' | t: { n: d.pendingCount } }}</span>
+            </div>
+            @if (d.pendingCount > 0) {
+              <button type="button" class="btn btn-primary" [disabled]="reminding()" (click)="remindAll()">
+                {{ (reminding() ? 'Sending…' : 'Remind all') | t }}
+              </button>
+            }
+          </div>
         </div>
+
+        @if (trend().length > 0) {
+          <div class="hero-chart">
+            <div class="chart-head">
+              <span class="hero-label">{{ 'Last 6 months' | t }}</span>
+              <span class="legend">
+                <span><i class="sw billed"></i>{{ 'Billed' | t }}</span>
+                <span><i class="sw collected"></i>{{ 'Collected' | t }}</span>
+              </span>
+            </div>
+            <div class="bars" role="img" [attr.aria-label]="'Fees billed and collected, last 6 months'">
+              @for (m of trend(); track m.label) {
+                <div class="bar-col" [attr.title]="m.title">
+                  <span class="bar-rate">{{ m.rate }}</span>
+                  <div class="bar-pair">
+                    <span class="bar billed" [style.height.%]="m.billedPct"></span>
+                    <span class="bar collected" [style.height.%]="m.collectedPct"></span>
+                  </div>
+                  <span class="bar-label">{{ m.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </section>
     }
 
     @if (d.studentCount > 0) {
-      <div class="grid-2">
+      <div class="grid-2 stat-pair">
         <a class="card stat link-card" routerLink="/attendance">
           <span class="stat-label">{{ "Today's attendance" | t }}</span>
           @if (attendancePct() !== null) {
             <span class="stat-value">{{ attendancePct() }}%</span>
             <span class="stat-note ok-text">{{ '{a} of {b} present' | t: { a: d.presentToday, b: d.markedToday } }}</span>
+            <span class="meter desk-block"><span [style.width.%]="attendancePct()"></span></span>
           } @else {
             <span class="stat-value">—</span>
             <span class="stat-note accent-text">{{ 'Mark attendance' | t }}</span>
@@ -95,25 +124,176 @@
       </div>
     }
 
-    @if (d.needsAttention.length > 0) {
-      <section class="stack">
-        <div class="section-title">
-          <h2 style="font-size: 16px">{{ 'Late fees' | t }}</h2>
-          <a routerLink="/fees">{{ 'See all' | t }}</a>
-        </div>
-        <div class="card card--list">
-          @for (n of d.needsAttention; track n.studentId) {
-            <div class="list-row">
-              <span class="avatar warn">{{ initials(n.studentName) }}</span>
-              <div class="list-main">
-                <span class="list-title">{{ n.studentName }}</span>
-                <span class="list-sub warn-text">{{ '{amount} · {n} days late' | t: { amount: rupees(n.pending), n: n.maxDaysLate } }}</span>
-              </div>
-              <button type="button" class="btn btn-outline sm" (click)="remind(n)">{{ 'Remind' | t }}</button>
+    @if (ins(); as i) {
+      @if (d.studentCount > 0) {
+        <section class="tiles" aria-label="This month">
+          <a class="card tile link-card" routerLink="/students">
+            <span class="stat-label">{{ 'Active students' | t }}</span>
+            <span class="tile-value">{{ d.studentCount }}</span>
+            @if (i.newThisMonth > 0) {
+              <span class="stat-note ok-text">+{{ i.newThisMonth }} {{ 'new this month' | t }}</span>
+            } @else {
+              <span class="stat-note">{{ 'No new admissions this month' | t }}</span>
+            }
+          </a>
+          <a class="card tile link-card" routerLink="/fees">
+            <span class="stat-label">{{ 'Overdue' | t }}</span>
+            <span class="tile-value">{{ rupees(i.overdue) }}</span>
+            <span class="stat-note" [class.warn-text]="i.overdueCount > 0">{{ '{n} students late' | t: { n: i.overdueCount } }}</span>
+          </a>
+          <a class="card tile link-card" routerLink="/reports">
+            <span class="stat-label">{{ 'Paid by UPI / online' | t }}</span>
+            <span class="tile-value">{{ i.digitalSharePct }}%</span>
+            <span class="stat-note">{{ 'of {month} payments' | t: { month: monthName(d.month) } }}</span>
+          </a>
+          <a class="card tile link-card" routerLink="/messages">
+            <span class="stat-label">{{ 'WhatsApp messages' | t }}</span>
+            <span class="tile-value">{{ i.messagesThisMonth }}</span>
+            @if (i.messagesDeliveredPct > 0) {
+              <span class="stat-note ok-text">{{ i.messagesDeliveredPct }}% {{ 'delivered' | t }}@if (i.messageLimit) { · {{ i.messagesThisMonth }} / {{ i.messageLimit }} }</span>
+            } @else {
+              <span class="stat-note">{{ 'sent this month' | t }}@if (i.messageLimit) { · {{ 'limit' | t }} {{ i.messageLimit }} }</span>
+            }
+          </a>
+        </section>
+      }
+    }
+
+    @if (d.needsAttention.length > 0 || timeline().length > 0) {
+      <div class="dash-row">
+        @if (d.needsAttention.length > 0) {
+          <section class="stack late">
+            <div class="section-title">
+              <h2 style="font-size: 16px">{{ 'Late fees' | t }}</h2>
+              <a routerLink="/fees">{{ 'See all' | t }}</a>
             </div>
+
+            <!-- Phone: compact list -->
+            <div class="card card--list late-list">
+              @for (n of d.needsAttention.slice(0, 4); track n.studentId) {
+                <div class="list-row">
+                  <span class="avatar warn">{{ initials(n.studentName) }}</span>
+                  <div class="list-main">
+                    <span class="list-title">{{ n.studentName }}</span>
+                    <span class="list-sub warn-text">{{ '{amount} · {n} days late' | t: { amount: rupees(n.pending), n: n.maxDaysLate } }}</span>
+                  </div>
+                  <button type="button" class="btn btn-outline sm" (click)="remind(n)">{{ 'Remind' | t }}</button>
+                </div>
+              }
+            </div>
+
+            <!-- Desktop: table -->
+            <div class="card late-table">
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ 'Student' | t }}</th>
+                      <th scope="col">{{ labels.l().group }}</th>
+                      <th scope="col" class="num">{{ 'Pending' | t }}</th>
+                      <th scope="col">{{ 'Late by' | t }}</th>
+                      <th scope="col"><span class="sr-only">{{ 'Action' | t }}</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (n of d.needsAttention; track n.studentId) {
+                      <tr>
+                        <td>
+                          <a class="student-link" [routerLink]="['/students', n.studentId]">
+                            <span class="avatar warn sm-avatar">{{ initials(n.studentName) }}</span>
+                            <span class="list-title">{{ n.studentName }}</span>
+                          </a>
+                        </td>
+                        <td class="muted">{{ n.batchName }}</td>
+                        <td class="num strong">{{ rupees(n.pending) }}</td>
+                        <td><span class="late-pill">{{ '{n} days' | t: { n: n.maxDaysLate } }}</span></td>
+                        <td class="num"><button type="button" class="btn btn-outline sm" (click)="remind(n)">{{ 'Remind' | t }}</button></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (ins(); as i) {
+                <div class="late-foot">
+                  <span class="muted">
+                    {{ 'Showing {a} of {b} students' | t: { a: d.needsAttention.length, b: i.overdueCount } }} · {{ rupees(i.overdue) }} {{ 'overdue' | t }}
+                  </span>
+                  <button type="button" class="btn btn-ghost sm accent-text" [disabled]="reminding()" (click)="remindAll()">
+                    {{ 'Remind all on WhatsApp' | t }}
+                  </button>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        @if (timeline().length > 0) {
+          <section class="card today" aria-labelledby="today-title">
+            <div class="section-title">
+              <h2 id="today-title" style="font-size: 16px">{{ 'Today' | t }}</h2>
+              @if (attendancePct() !== null) {
+                <span class="ok-pill">{{ attendancePct() }}% {{ 'present' | t }}</span>
+              }
+            </div>
+            <ol class="timeline">
+              @for (t of timeline(); track t.key) {
+                <li [class]="t.kind">
+                  <span class="dot" aria-hidden="true"></span>
+                  <div class="tl-body">
+                    <span class="tl-time">{{ t.time }}</span>
+                    <span class="tl-title">{{ t.title }}</span>
+                    <span class="tl-sub">{{ t.sub }}</span>
+                  </div>
+                </li>
+              }
+            </ol>
+          </section>
+        }
+      </div>
+    }
+
+    @if (ins(); as i) {
+      @if (batchRows().length > 0 || i.recentPayments.length > 0) {
+        <div class="dash-row even">
+          @if (batchRows().length > 0) {
+            <section class="card batch-card" aria-labelledby="batch-title">
+              <div class="section-title">
+                <h2 id="batch-title" style="font-size: 16px">{{ '{month} collection by {group}' | t: { month: monthName(d.month), group: labels.l().groupLower } }}</h2>
+                <a routerLink="/reports">{{ 'Reports' | t }}</a>
+              </div>
+              @for (b of batchRows(); track b.batchId) {
+                <div class="batch-row">
+                  <span class="batch-name">{{ b.name }}</span>
+                  <span class="meter"><span [style.width.%]="b.pct"></span></span>
+                  <span class="batch-pct">{{ b.pct }}%</span>
+                </div>
+              }
+            </section>
+          }
+
+          @if (i.recentPayments.length > 0) {
+            <section class="card pay-card" aria-labelledby="pay-title">
+              <div class="section-title">
+                <h2 id="pay-title" style="font-size: 16px">{{ 'Recent payments' | t }}</h2>
+                <a routerLink="/fees">{{ 'See all' | t }}</a>
+              </div>
+              @for (p of i.recentPayments; track p.id) {
+                <a class="pay-row" [routerLink]="['/receipts', p.id]">
+                  <span class="avatar">{{ initials(p.studentName) }}</span>
+                  <span class="list-main">
+                    <span class="list-title">{{ p.studentName }}</span>
+                    <span class="list-sub">{{ p.receiptNo }} · {{ p.batchName }} · {{ paymentTime(p) }}</span>
+                  </span>
+                  <span class="pay-amount">
+                    <strong>{{ rupees(p.amount) }}</strong>
+                    <span class="ok-text">{{ p.mode }}</span>
+                  </span>
+                </a>
+              }
+            </section>
           }
         </div>
-      </section>
+      }
     }
   } @else {
     <div class="skeleton hero-skel"></div>

@@ -166,3 +166,534 @@
   gap: 2px;
   text-decoration: none;
 }
+
+/* =========================================================
+   Desktop dashboard
+   Phones keep the single-column layout above. From 960px the
+   page widens and the extra rows (chart, tiles, timeline,
+   batches, payments) appear.
+   ========================================================= */
+
+/* The amount side of the dark card (the chart sits beside it on desktop) */
+.hero-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Hidden on phones */
+.desk-inline,
+.desk-flex,
+.desk-block,
+.hero-chart,
+.tiles,
+.late-table,
+.today,
+.batch-card,
+.pay-card {
+  display: none;
+}
+
+.late-pill,
+.ok-pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.late-pill {
+  background: var(--warn-tint);
+  color: var(--warn-dark);
+}
+
+.ok-pill {
+  background: var(--ok-tint);
+  color: var(--ok-dark);
+}
+
+.meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--neutral-bg);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+}
+
+@media (min-width: 960px) {
+  .page.dash {
+    max-width: 1240px;
+    gap: 20px;
+  }
+
+  .desk-inline {
+    display: inline;
+  }
+
+  .desk-flex {
+    display: inline-flex;
+  }
+
+  .desk-block {
+    display: block;
+  }
+
+  .hello .page-title {
+    font-size: 26px;
+  }
+
+  .head-btn {
+    text-decoration: none;
+  }
+
+  /* ---- Hero: amount on the left, chart on the right ---- */
+  .hero {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 32px;
+    padding: 28px;
+  }
+
+  .hero-main {
+    flex: 1 1 320px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .hero .hero-amount {
+    font-size: 44px;
+  }
+
+  .hero-chart {
+    flex: 1.4 1 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    font-size: 12px;
+    color: #a4a9c0;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+
+  .sw {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+
+    &.billed {
+      background: #3a4266;
+    }
+
+    &.collected {
+      background: #8b85ff;
+    }
+  }
+
+  .bars {
+    flex: 1;
+    min-height: 170px;
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .bar-rate {
+    font-size: 11px;
+    color: #a4a9c0;
+  }
+
+  .bar-pair {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 3px;
+  }
+
+  .bar {
+    width: 12px;
+    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+
+    &.billed {
+      background: #3a4266;
+    }
+
+    &.collected {
+      background: #8b85ff;
+    }
+  }
+
+  .bar-label {
+    font-size: 12px;
+    color: #a4a9c0;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    width: 100%;
+    text-align: center;
+  }
+
+  /* ---- Stat pair + tiles ---- */
+  .stat-pair {
+    gap: 20px;
+
+    .stat {
+      padding: 20px;
+      gap: 8px;
+    }
+
+    .meter {
+      height: 6px;
+
+      > span {
+        background: var(--ok);
+      }
+    }
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .tile {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 20px;
+  }
+
+  .tile-value {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* ---- Two-column rows ---- */
+  .dash-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  /* ---- Late fees: table instead of the phone list ---- */
+  .late-list {
+    display: none;
+  }
+
+  .late {
+    min-width: 0;
+  }
+
+  .late-table {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 8px 20px 16px;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th {
+    text-align: left;
+    padding: 12px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--divider);
+  }
+
+  td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--divider);
+    vertical-align: middle;
+  }
+
+  .num {
+    text-align: right;
+  }
+
+  .strong {
+    font-weight: 700;
+  }
+
+  .student-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+    text-decoration: none;
+
+    &:hover .list-title {
+      color: var(--accent-dark);
+    }
+  }
+
+  .sm-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .late-foot {
+    margin-top: auto;
+    padding-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  /* ---- Today timeline ---- */
+  .today {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+    min-width: 0;
+  }
+
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      position: relative;
+      display: flex;
+      gap: 14px;
+      padding-bottom: 14px;
+
+      &:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 16px;
+        bottom: 0;
+        width: 2px;
+        background: var(--divider);
+      }
+    }
+
+    .dot {
+      flex-shrink: 0;
+      width: 12px;
+      height: 12px;
+      margin-top: 3px;
+      border-radius: 999px;
+      box-sizing: border-box;
+    }
+
+    .done .dot {
+      background: var(--ok);
+    }
+
+    .pay .dot {
+      background: var(--accent);
+    }
+
+    .next .dot {
+      border: 2px solid #8e94ad;
+      background: var(--surface);
+    }
+  }
+
+  .tl-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .tl-time {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .tl-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .tl-sub {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ---- Batches + recent payments ---- */
+  .batch-card,
+  .pay-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    min-width: 0;
+  }
+
+  .batch-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .batch-name {
+    width: 160px;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: var(--ink-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .batch-row .meter {
+    flex: 1;
+    height: 10px;
+  }
+
+  .batch-pct {
+    width: 44px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .pay-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--divider);
+    color: var(--ink);
+    text-decoration: none;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    &:hover .list-title {
+      color: var(--accent-dark);
+    }
+
+    .avatar {
+      background: var(--accent-tint);
+      color: var(--accent-dark);
+    }
+  }
+
+  .pay-row .list-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .pay-row .list-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .pay-row .list-sub {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tile .stat-label,
+  .tile .stat-note {
+    font-size: 13px;
+  }
+
+  .tile .stat-label {
+    color: var(--muted);
+  }
+
+  .pay-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-size: 14px;
+
+    span {
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+}
+
+/* Side by side once there is room for both columns */
+@media (min-width: 1200px) {
+  .dash-row {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .dash-row.even {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .late {
+    display: flex;
+  }
+}
+
+/* Tiles: two per row on small laptops */
+@media (min-width: 960px) and (max-width: 1199px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

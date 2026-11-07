@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Batch, Student } from '../../core/models/models';
 import { LabelService } from '../../core/labels';
@@ -11,6 +11,7 @@ import { StudentService } from '../../core/services/student.service';
 import { initials, isoDate, longDate } from '../../shared/format';
 import { Icon } from '../../shared/icon';
 import { ToastService } from '../../shared/toast';
+import { errorMessage } from '../../core/interceptors/auth.interceptor';
 
 @Component({
   selector: 'app-attendance',
@@ -24,6 +25,7 @@ export class Attendance {
   private readonly batchService = inject(BatchService);
   private readonly studentService = inject(StudentService);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
   protected readonly labels = inject(LabelService);
   protected readonly auth = inject(AuthService);
   private readonly i18n = inject(I18nService);
@@ -53,7 +55,10 @@ export class Attendance {
   constructor() {
     this.batchService.list().subscribe((list) => {
       this.batches.set(list);
-      if (list.length) this.pickBatch(list[0]!.id);
+      // ?batch=<id> (from the teacher's Home) opens that register; otherwise the first batch.
+      const wanted = this.route.snapshot.queryParamMap.get('batch');
+      const first = list.find((b) => b.id === wanted) ?? list[0];
+      if (first) this.pickBatch(first.id);
       else this.loading.set(false);
     });
   }
@@ -81,16 +86,22 @@ export class Attendance {
 
   protected save(): void {
     this.busy.set(true);
-    this.attendance.save(this.batchId(), this.date(), [...this.absent()]).subscribe((res) => {
-      this.busy.set(false);
-      this.saved.set(true);
-      this.dirty.set(false);
-      const n = res.alerted;
-      this.toast.show(
-        n === 0 ? this.i18n.t('Attendance saved')
-          : n === 1 ? this.i18n.t('Saved. 1 parent alerted on WhatsApp.')
-          : this.i18n.t('Saved. {n} parents alerted on WhatsApp.', { n }),
-      );
+    this.attendance.save(this.batchId(), this.date(), [...this.absent()]).subscribe({
+      next: (res) => {
+        this.busy.set(false);
+        this.saved.set(true);
+        this.dirty.set(false);
+        const n = res.alerted;
+        this.toast.show(
+          n === 0 ? this.i18n.t('Attendance saved')
+            : n === 1 ? this.i18n.t('Saved. 1 parent alerted on WhatsApp.')
+            : this.i18n.t('Saved. {n} parents alerted on WhatsApp.', { n }),
+        );
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.toast.show(errorMessage(err));
+      },
     });
   }
 
@@ -99,12 +110,20 @@ export class Attendance {
     forkJoin([
       this.studentService.list({ batchId: this.batchId() }),
       this.attendance.get(this.batchId(), this.date()),
-    ]).subscribe(([students, sheet]) => {
-      this.students.set(students);
-      this.absent.set(new Set(sheet.absentStudentIds));
-      this.saved.set(sheet.saved);
-      this.dirty.set(false);
-      this.loading.set(false);
+    ]).subscribe({
+      next: ([students, sheet]) => {
+        this.students.set(students);
+        this.absent.set(new Set(sheet.absentStudentIds));
+        this.saved.set(sheet.saved);
+        this.dirty.set(false);
+        this.loading.set(false);
+      },
+      // Don't leave an empty register on screen without saying why.
+      error: (err) => {
+        this.students.set([]);
+        this.loading.set(false);
+        this.toast.show(errorMessage(err));
+      },
     });
   }
 }

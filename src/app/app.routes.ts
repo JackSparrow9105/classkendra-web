@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, centreGuard, guestGuard, officeGuard, ownerGuard } from './core/guards/guards';
+import { authGuard, centreGuard, guestGuard, officeGuard, ownerGuard, teacherGuard } from './core/guards/guards';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -22,6 +22,7 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/shell').then((m) => m.Shell),
     children: [
       { path: 'dashboard', canActivate: [officeGuard], loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard) },
+      { path: 'home', canActivate: [teacherGuard], loadComponent: () => import('./features/dashboard/teacher-home').then((m) => m.TeacherHome) },
       { path: 'students', loadComponent: () => import('./features/students/student-list').then((m) => m.StudentList) },
       { path: 'students/new', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-form').then((m) => m.StudentForm) },
       { path: 'students/import', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-import').then((m) => m.StudentImport) },

@@ -21,7 +21,7 @@ const SCHOOL_PLANS: Plan[] = [
 ];
 
 export interface CheckoutResponse {
-  /** Razorpay subscription or payment link the owner is sent to. */
+  /** Razorpay Payment Link the owner is sent to; it returns to /plans?razorpay_payment_link_status=paid. */
   paymentUrl: string;
 }
 

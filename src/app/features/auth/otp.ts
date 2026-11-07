@@ -61,7 +61,7 @@ export class Otp {
           return;
         }
         this.centre.load().subscribe((c) =>
-          this.router.navigateByUrl(c?.setupComplete ? '/dashboard' : '/setup/batches'),
+          this.router.navigateByUrl(this.auth.isTeacher() ? '/home' : c?.setupComplete ? '/dashboard' : '/setup/batches'),
         );
       },
       error: (e) => {

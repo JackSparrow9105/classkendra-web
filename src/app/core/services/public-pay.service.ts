@@ -15,9 +15,17 @@ import { toPaymentView, toView } from './fee.service';
  * Real flow:
  *  1. GET  /public/pay/{token}                 -> page data
  *  2. POST /public/pay/{token}/order {dueIds}  -> Razorpay order; the page opens Razorpay Checkout (UPI)
- *  3. Razorpay webhook -> API records the Payment (mode Online), sends the WhatsApp receipt
- *  4. GET  /public/pay/{token}/orders/{orderId} -> the receipt once the webhook has arrived
+ *  3. Checkout's success handler -> POST /public/pay/{token}/verify -> API records the Payment (mode Online),
+ *     sends the WhatsApp receipt and returns it. The Razorpay webhook does the same if the parent closes the page.
+ *  4. GET  /public/pay/{token}/orders/{orderId} -> the receipt once recorded (404 before) — fallback if step 3 fails
  */
+/** What Razorpay Checkout passes to its success handler. */
+export interface RazorpaySuccess {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PublicPayService {
   private readonly api = inject(ApiService);
@@ -50,6 +58,20 @@ export class PublicPayService {
     const s = this.mock.snapshot;
     const amount = s.dues.filter((d) => dueIds.includes(d.id)).reduce((t, d) => t + d.amount - d.paidAmount, 0);
     return this.mock.respond({ orderId: 'order_demo_' + Date.now(), amount, keyId: '' }, 400);
+  }
+
+  /** POST /public/pay/{token}/verify — with what Razorpay Checkout returned on success. */
+  confirm(token: string, res: RazorpaySuccess): Observable<PaymentView> {
+    return this.api.post<PaymentView>(`public/pay/${token}/verify`, {
+      razorpayOrderId: res.razorpay_order_id,
+      razorpayPaymentId: res.razorpay_payment_id,
+      razorpaySignature: res.razorpay_signature,
+    });
+  }
+
+  /** GET /public/pay/{token}/orders/{orderId} — the receipt, once the payment is recorded. */
+  receipt(token: string, orderId: string): Observable<PaymentView> {
+    return this.api.get<PaymentView>(`public/pay/${token}/orders/${orderId}`);
   }
 
   /** Demo only: pretends Razorpay confirmed the payment and records it as the webhook would. */

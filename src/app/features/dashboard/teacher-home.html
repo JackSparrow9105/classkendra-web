@@ -1,0 +1,238 @@
+<div class="page tdash">
+  <header class="page-head">
+    <div class="hello">
+      <span class="muted">{{ greeting | t }} · {{ todayLabel }}</span>
+      <h1 class="page-title">
+        @if (firstName()) {
+          {{ 'Hi, {name}' | t: { name: firstName() } }}
+        } @else {
+          {{ centre.centre()?.name }}
+        }
+      </h1>
+    </div>
+    <a routerLink="/attendance" class="btn btn-primary head-btn">{{ 'Mark attendance' | t }}</a>
+  </header>
+
+  @if (data(); as d) {
+    @if (d.batchCount === 0) {
+      <section class="card empty">
+        <h2>{{ 'No batches yet' | t }}</h2>
+        <p class="muted">
+          {{ 'Ask the centre owner to add you to your batches. They will show up here.' | t }}
+        </p>
+      </section>
+    } @else {
+      <!-- Next class + today's list -->
+      <section class="hero next-hero" aria-label="Today">
+        <div class="next-main">
+          @if (nextClass(); as c) {
+            <span class="hero-label">{{ nextLabel() }}</span>
+            <span class="next-name">{{ c.name }}</span>
+            <span class="next-meta">{{ nextTime() }}</span>
+            <div class="row next-actions">
+              <a
+                class="btn btn-primary"
+                routerLink="/attendance"
+                [queryParams]="{ batch: c.batchId }"
+                >{{ 'Open register' | t }}</a
+              >
+              <a class="btn btn-dark-outline" routerLink="/students">{{ 'See students' | t }}</a>
+            </div>
+          } @else if (allDoneToday()) {
+            <span class="hero-label">{{ 'Today' | t }}</span>
+            <span class="next-name">{{ 'All registers marked' | t }}</span>
+            <span class="next-meta">{{
+              'Nice work. Parents of absent students have been told.' | t
+            }}</span>
+          } @else {
+            <span class="hero-label">{{ 'Today' | t }}</span>
+            <span class="next-name">{{ 'No classes today' | t }}</span>
+            <span class="next-meta">{{ 'Your week is below.' | t }}</span>
+          }
+        </div>
+
+        @if (today().length > 0) {
+          <div class="today-list">
+            <span class="hero-label">{{ 'Today' | t }}</span>
+            @for (c of today(); track c.batchId) {
+              <a
+                class="today-row"
+                [class]="'today-row ' + c.state"
+                routerLink="/attendance"
+                [queryParams]="{ batch: c.batchId }"
+              >
+                <span class="today-time">{{ c.time }}</span>
+                <span class="today-main">
+                  <span class="today-name">{{ c.name }}</span>
+                  <span class="today-note">{{ c.note }}</span>
+                </span>
+                <span class="today-badge">{{ c.badge }}</span>
+              </a>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Tiles -->
+      <section class="tiles" aria-label="Summary">
+        <a class="card tile link-card" routerLink="/students">
+          <span class="tile-label">{{ 'My students' | t }}</span>
+          <span class="tile-value">{{ d.studentCount }}</span>
+          <span class="tile-note">{{
+            d.batchCount === 1 ? ('in 1 batch' | t) : ('in {n} batches' | t: { n: d.batchCount })
+          }}</span>
+        </a>
+        <div class="card tile">
+          <span class="tile-label">{{ 'Attendance in {month}' | t: { month: monthName } }}</span>
+          <span class="tile-value">{{ d.monthPct === null ? '—' : d.monthPct + '%' }}</span>
+          @if (monthChange(); as ch) {
+            <span class="tile-note" [class.ok-text]="ch > 0" [class.warn-text]="ch < 0">
+              {{ ch > 0 ? 'Up' : 'Down' }} {{ ch > 0 ? ch : -ch }}% {{ 'on' | t }}
+              {{ prevMonthName }}
+            </span>
+          } @else if (monthChange() === 0) {
+            <span class="tile-note">{{ 'Same as' | t }} {{ prevMonthName }}</span>
+          } @else {
+            <span class="tile-note">{{ 'Across your batches' | t }}</span>
+          }
+        </div>
+        <div class="card tile">
+          <span class="tile-label">{{ 'Registers this week' | t }}</span>
+          <span class="tile-value">{{ d.weekMarked }} {{ 'of' | t }} {{ d.weekScheduled }}</span>
+          @if (weekLeft() > 0) {
+            <span class="tile-note warn-text">{{
+              '{n} left this week' | t: { n: weekLeft() }
+            }}</span>
+          } @else {
+            <span class="tile-note ok-text">{{ 'All marked' | t }}</span>
+          }
+        </div>
+        <div class="card tile">
+          <span class="tile-label">{{ 'Parents alerted this week' | t }}</span>
+          <span class="tile-value">{{ d.alertsThisWeek }}</span>
+          <span class="tile-note">{{ 'absent alerts on WhatsApp' | t }}</span>
+        </div>
+      </section>
+
+      <!-- Students to watch + batches -->
+      <div class="t-row">
+        <section class="card watch" aria-labelledby="watch-title">
+          <div class="section-title">
+            <div class="stack" style="gap: 2px">
+              <h2 id="watch-title" style="font-size: 16px">{{ 'Students to watch' | t }}</h2>
+              <span class="muted small">{{ 'Missed 3 or more of their last 12 classes' | t }}</span>
+            </div>
+            <a routerLink="/students">{{ 'My students' | t }}</a>
+          </div>
+          @for (w of watch(); track w.studentId) {
+            <div class="watch-row">
+              <span class="avatar warn">{{ initials(w.name) }}</span>
+              <span class="watch-main">
+                <span class="watch-name">{{ w.name }}</span>
+                <span class="watch-sub"
+                  >{{ w.batchName }} · {{ 'last absent' | t }} {{ w.last }}</span
+                >
+              </span>
+              <span
+                class="dots"
+                role="img"
+                [attr.aria-label]="w.missed + ' absent out of the last ' + w.of + ' classes'"
+              >
+                @for (a of w.history; track $index) {
+                  <span class="dot" [class.absent]="a"></span>
+                }
+              </span>
+              <span class="watch-count">{{
+                '{a} of {b} missed' | t: { a: w.missed, b: w.of }
+              }}</span>
+            </div>
+          } @empty {
+            <p class="muted small empty-note">
+              {{ 'Nobody has missed 3 of their last 12 classes.' | t }}
+            </p>
+          }
+          @if (watch().length > 0) {
+            <span class="muted small legend">{{
+              'Each square is one class, oldest on the left. Orange = absent.' | t
+            }}</span>
+          }
+        </section>
+
+        <section class="card batch-trend" aria-labelledby="trend-title">
+          <h2 id="trend-title" style="font-size: 16px">{{ 'My batches · last 30 days' | t }}</h2>
+          @for (b of batches(); track b.batchId) {
+            <div class="trend-card">
+              <div class="trend-head">
+                <span class="trend-name">{{ b.name }}</span>
+                <span class="trend-pct">{{ b.pct === null ? '—' : b.pct + '%' }}</span>
+              </div>
+              <div
+                class="trend-bars"
+                role="img"
+                [attr.aria-label]="b.name + ' attendance, last ' + b.bars.length + ' classes'"
+              >
+                @for (bar of b.bars; track bar.key) {
+                  <span
+                    class="trend-bar"
+                    [class.low]="bar.low"
+                    [style.height.%]="bar.height"
+                    [attr.title]="bar.title"
+                  ></span>
+                }
+              </div>
+              <span class="muted small">{{ b.note }}</span>
+            </div>
+          }
+        </section>
+      </div>
+
+      <!-- Week timetable -->
+      @if (week(); as wk) {
+        @if (wk.rows.length > 0) {
+          <section class="card week" aria-labelledby="week-title">
+            <div class="section-title">
+              <h2 id="week-title" style="font-size: 16px">{{ 'This week' | t }}</h2>
+              <span class="muted small">{{ wk.range }}</span>
+            </div>
+            <div class="week-scroll">
+              <div class="week-grid">
+                <span></span>
+                @for (day of wk.days; track day.iso) {
+                  <span class="week-day" [class.today]="day.today"
+                    >{{ day.label }}
+                    @if (day.today) {
+                      · {{ 'Today' | t }}
+                    }
+                  </span>
+                }
+                @for (row of wk.rows; track row.batchId) {
+                  <span class="week-time">{{ row.time }}</span>
+                  @for (c of row.cells; track c.key) {
+                    <div class="week-cell" [class]="'week-cell ' + c.kind">
+                      <span class="cell-title">{{ c.title }}</span>
+                      @if (c.sub) {
+                        <span class="cell-sub">{{ c.sub }}</span>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          </section>
+        }
+      }
+    }
+  } @else if (failed()) {
+    <section class="card empty">
+      <h2>{{ "Couldn't load your classes" | t }}</h2>
+      <p class="muted">{{ 'Check your internet connection and open Home again.' | t }}</p>
+      <a routerLink="/attendance" class="btn btn-outline">{{ 'Go to attendance' | t }}</a>
+    </section>
+  } @else {
+    <div class="skeleton hero-skel"></div>
+    <div class="grid-2">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  }
+</div>

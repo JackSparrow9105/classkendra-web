@@ -59,11 +59,10 @@ export class ReportService {
   }
 
   /**
-   * GET /reports/collection.xlsx?month=  (the API builds it with ClosedXML)
-   * In demo mode the same workbook is built in the browser so you can see the format.
+   * The Excel file is built in the browser from the report the screen already has (exceljs),
+   * so the API needs no .xlsx endpoint and the file always matches what is on screen.
    */
   collectionExcel(report: CollectionReport, orgName: string, groupLabel: string): Observable<Blob> {
-    if (!environment.useMock) return this.api.getBlob('reports/collection.xlsx', { month: report.month });
     return from(buildWorkbook(report, orgName, groupLabel));
   }
 }
