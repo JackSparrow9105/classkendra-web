@@ -70,13 +70,8 @@
   .logo {
     width: 40px;
     height: 40px;
-    border-radius: 12px;
-    background: var(--accent);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
+    display: block;
+    flex-shrink: 0;
   }
 
   .brand-text {

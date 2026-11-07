@@ -26,6 +26,7 @@ export class Shell {
   protected readonly nav = computed<NavItem[]>(() =>
     this.auth.isTeacher()
       ? [
+          { path: '/home', label: 'Home', icon: 'home' },
           { path: '/attendance', label: 'Attendance', icon: 'calendar-check' },
           { path: '/students', label: 'Students', icon: 'users' },
           { path: '/settings', label: 'Account', icon: 'settings' },

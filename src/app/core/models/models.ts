@@ -251,6 +251,47 @@ export interface DashboardSummary {
   feesConfigured: boolean;
   /** Students with late fees, most overdue first. */
   needsAttention: StudentFees[];
+  /** Extra numbers for the wide (desktop) dashboard. Older APIs leave it out. */
+  insights?: DashboardInsights | null;
+}
+
+/** Desktop dashboard extras, all for the logged-in centre. */
+export interface DashboardInsights {
+  /** Active students who joined this month. */
+  newThisMonth: number;
+  /** Still owed on bills whose due date has passed. */
+  overdue: number;
+  overdueCount: number;
+  /** Share of this month's collections paid by UPI or online (0–100). */
+  digitalSharePct: number;
+  messagesThisMonth: number;
+  /** Delivered or read, out of messages that left the outbox (0–100). */
+  messagesDeliveredPct: number;
+  messageLimit: number;
+  /** Last 6 months, oldest first. Billed = bills raised that month; collected = receipts dated that month. */
+  trend: { month: string; billed: number; collected: number }[];
+  /** This month's bills per batch and how much of them is paid. */
+  batches: { batchId: string; name: string; billed: number; collected: number }[];
+  /** Latest receipts, newest first. `at` is the ISO timestamp it was recorded (UTC). */
+  recentPayments: {
+    id: string;
+    receiptNo: string;
+    studentName: string;
+    batchName: string;
+    amount: number;
+    mode: PaymentMode;
+    paidOn: string;
+    at: string | null;
+  }[];
+  /** Batches that meet today, by start time. `present` is null until attendance is marked. */
+  classesToday: {
+    batchId: string;
+    name: string;
+    startTime: string | null;
+    teacher: string | null;
+    students: number;
+    present: number | null;
+  }[];
 }
 
 export interface Plan {
@@ -327,4 +368,59 @@ export interface ParentPayOrder {
   amount: number;
   /** Razorpay key id for Checkout; empty in demo mode. */
   keyId: string;
+}
+
+/** GET /dashboard/teacher — a teacher's home screen. Only their own batches; no money. */
+export interface TeacherDashboard {
+  batchCount: number;
+  studentCount: number;
+  /** Attendance this month and last month (0–100), null when nothing was marked. */
+  monthPct: number | null;
+  prevMonthPct: number | null;
+  /** Registers saved this week (Mon–Sat) out of classes scheduled this week. */
+  weekMarked: number;
+  weekScheduled: number;
+  /** Absent alerts sent to parents this week. */
+  alertsThisWeek: number;
+  /** Today's classes by start time. `present` and `markedAt` (HH:mm, India time) are null until marked. */
+  classesToday: {
+    batchId: string;
+    name: string;
+    startTime: string | null;
+    endTime: string | null;
+    days: string | null;
+    students: number;
+    present: number | null;
+    markedAt: string | null;
+    alerted: number;
+  }[];
+  /** Students who missed 3+ of their last 12 classes. `history`: oldest first, true = absent. */
+  watch: {
+    studentId: string;
+    name: string;
+    batchName: string;
+    lastAbsent: string;
+    missed: number;
+    of: number;
+    history: boolean[];
+  }[];
+  /** Each batch over the last 30 days. */
+  batches: {
+    batchId: string;
+    name: string;
+    students: number;
+    pct: number | null;
+    classes: { date: string; pct: number }[];
+    lowest: { date: string; pct: number } | null;
+  }[];
+  /** This week's timetable (Mon–Sat), one row per batch. */
+  week: {
+    start: string;
+    slots: {
+      batchId: string;
+      name: string;
+      startTime: string | null;
+      days: { date: string; scheduled: boolean; present: number | null; students: number }[];
+    }[];
+  };
 }
