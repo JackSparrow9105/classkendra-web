@@ -1,0 +1,1 @@
+import"./chunk-DQ8P8WET.js";import{C as ee,D as g,O as k,a as De,f as R,h as Sn,i as C,m as S,p as Rt,r as Bt,t as An,u as On,x as _}from"./chunk-CwNBvDbX.js";R(`firebase`,`12.19.0`,`app`);export{Rt as initializeApp};
