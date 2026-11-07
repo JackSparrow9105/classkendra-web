@@ -42,6 +42,10 @@ export interface MockState {
   staff: StaffMember[];
   attendance: Record<string, string[]>;
   messages: MessageLog[];
+  /** Demo only: app PINs by user id (kept plain because it's only in this browser). */
+  pins?: Record<string, { pin: string; attempts: number }>;
+  /** Demo only: remembered devices, device key -> user id. */
+  devices?: Record<string, string>;
 }
 
 const KEY = 'classkendra-mock-v3';

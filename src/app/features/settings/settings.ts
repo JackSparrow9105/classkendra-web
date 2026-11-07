@@ -139,6 +139,15 @@ export class Settings {
     this.router.navigateByUrl('/login');
   }
 
+  /** Teachers only (owner and staff must keep a PIN). */
+  protected removePin(): void {
+    if (!confirm(this.i18n.t('Turn off the app PIN on your account?'))) return;
+    this.auth.removePin().subscribe({
+      next: () => this.toast.show(this.i18n.t('App PIN turned off')),
+      error: (e) => this.toast.show(errorMessage(e)),
+    });
+  }
+
   protected logout(): void {
     this.auth.logout();
     this.router.navigateByUrl('/login');

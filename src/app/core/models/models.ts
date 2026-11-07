@@ -20,11 +20,17 @@ export interface AuthUser {
   tenantId: string | null;
   /** Teachers only: the batches/classes they can mark attendance for. Empty for Owner and Staff (they see all). */
   batchIds: string[];
+  /** An app PIN is set (asked after 10 minutes away instead of an OTP). */
+  hasPin?: boolean;
+  /** Owner and office staff must set a PIN because the app shows fees; teachers may skip. */
+  pinRequired?: boolean;
 }
 
 export interface AuthResponse {
   token: string;
   user: AuthUser;
+  /** Sent after an OTP login (or the first PIN on a device): the key that lets this phone unlock with a PIN. */
+  deviceToken?: string | null;
 }
 
 export interface Centre {

@@ -55,6 +55,38 @@
     }
   </section>
 
+  <!-- App PIN: asked after 10 minutes away instead of an OTP -->
+  <section class="card card--list" aria-label="App PIN">
+    @if (auth.hasPin()) {
+      <a class="list-row link-row" routerLink="/set-pin" [queryParams]="{ change: 1 }">
+        <span class="avatar accent"><app-icon name="lock" [size]="18" /></span>
+        <span class="list-main">
+          <span class="list-title">{{ 'Change app PIN' | t }}</span>
+          <span class="list-sub">{{ 'Asked after 10 minutes away' | t }}</span>
+        </span>
+        <app-icon name="chevron-right" [size]="18" />
+      </a>
+      @if (!auth.pinRequired()) {
+        <button type="button" class="list-row link-row" (click)="removePin()">
+          <span class="avatar"><app-icon name="x" [size]="18" /></span>
+          <span class="list-main">
+            <span class="list-title">{{ 'Turn off app PIN' | t }}</span>
+            <span class="list-sub">{{ 'The app opens without a PIN on this phone' | t }}</span>
+          </span>
+        </button>
+      }
+    } @else {
+      <a class="list-row link-row" routerLink="/set-pin" [queryParams]="{ change: 1 }">
+        <span class="avatar accent"><app-icon name="lock" [size]="18" /></span>
+        <span class="list-main">
+          <span class="list-title">{{ 'Set an app PIN' | t }}</span>
+          <span class="list-sub">{{ 'Keeps the app locked if someone else uses your phone' | t }}</span>
+        </span>
+        <app-icon name="chevron-right" [size]="18" />
+      </a>
+    }
+  </section>
+
   @if (links().length) {
     <nav class="card card--list" aria-label="Settings">
       @for (l of links(); track l.path) {
