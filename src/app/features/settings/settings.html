@@ -10,7 +10,11 @@
 
   @if (centre.centre(); as c) {
     <section class="card centre-card">
-      <span class="centre-logo">{{ c.name.charAt(0) }}</span>
+      @if (logoSrc(); as src) {
+        <img class="centre-logo centre-logo--img" [src]="src" alt="">
+      } @else {
+        <span class="centre-logo">{{ c.name.charAt(0) }}</span>
+      }
       <div class="centre-text">
         <strong>{{ c.name }}</strong>
         <span>
@@ -146,6 +150,44 @@
         <label class="label" for="c-city">City</label>
         <input id="c-city" class="input" formControlName="city">
       </div>
+      <div class="field">
+        <label class="label" for="c-address">Address <span class="muted hint">Printed on receipts</span></label>
+        <textarea id="c-address" class="input" rows="2" formControlName="address"
+                  placeholder="e.g. 12, MG Road, Near City Mall" autocomplete="street-address"></textarea>
+      </div>
+      <div class="field">
+        <label class="label" for="c-phone">Phone <span class="muted hint">Printed on receipts</span></label>
+        <input id="c-phone" class="input" type="tel" formControlName="phone" placeholder="e.g. 98765 43210"
+               autocomplete="tel" [class.invalid]="form.controls.phone.invalid">
+        @if (form.controls.phone.invalid) {
+          <span class="error-text">Enter a valid phone number, e.g. 98765 43210 or 0522-2345678.</span>
+        }
+      </div>
+
+      <div class="field">
+        <span class="label">Logo <span class="muted hint">Printed on receipts</span></span>
+        <div class="logo-row">
+          @if (logoSrc(); as src) {
+            <img class="logo-preview" [src]="src" alt="Current logo">
+          } @else {
+            <span class="logo-preview logo-preview--empty">No logo</span>
+          }
+          <div class="logo-actions">
+            <label class="btn btn-outline sm" [class.disabled]="logoBusy()">
+              <app-icon name="upload" [size]="16" /> {{ logoSrc() ? 'Change' : 'Upload' }}
+              <input type="file" accept="image/png,image/jpeg,image/webp" class="sr-only"
+                     [disabled]="logoBusy()" (change)="pickLogo($event)">
+            </label>
+            @if (logoSrc()) {
+              <button type="button" class="btn btn-ghost sm danger" [disabled]="logoBusy()" (click)="removeLogo()">
+                <app-icon name="trash" [size]="16" /> Remove
+              </button>
+            }
+          </div>
+        </div>
+        <span class="muted hint">Old receipts keep the logo, address and phone they were printed with.</span>
+      </div>
+
       @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
       <button type="submit" class="btn btn-primary lg block" [disabled]="busy() || form.invalid">Save</button>
     </form>

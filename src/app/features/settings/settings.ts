@@ -8,9 +8,10 @@ import { I18nService, TPipe } from '../../core/i18n/i18n.service';
 import { InstallService } from '../../core/install.service';
 import { Lang } from '../../core/models/models';
 import { AuthService } from '../../core/services/auth.service';
-import { CentreService } from '../../core/services/centre.service';
+import { CentreService, logoUrl } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { BottomSheet } from '../../shared/bottom-sheet';
+import { shrinkImage } from '../../shared/image';
 import { Icon, IconName } from '../../shared/icon';
 import { ToastService } from '../../shared/toast';
 
@@ -44,6 +45,8 @@ export class Settings {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly showIosHelp = signal(false);
+  protected readonly logoBusy = signal(false);
+  protected readonly logoSrc = computed(() => logoUrl(this.centre.centre()?.logoId));
 
   /** What each role can open from Settings. Teachers only get their account. */
   protected readonly links = computed<SettingLink[]>(() => {
@@ -80,6 +83,8 @@ export class Settings {
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     ownerName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     city: new FormControl('', { nonNullable: true }),
+    address: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(300)] }),
+    phone: new FormControl('', { nonNullable: true, validators: [Validators.pattern(/^\s*\+?[0-9 ()-]{6,20}\s*$/)] }),
   });
 
   constructor() {
@@ -108,7 +113,7 @@ export class Settings {
   protected edit(): void {
     const c = this.centre.centre();
     if (!c) return;
-    this.form.reset({ name: c.name, ownerName: c.ownerName, city: c.city });
+    this.form.reset({ name: c.name, ownerName: c.ownerName, city: c.city, address: c.address ?? '', phone: c.phone ?? '' });
     this.error.set('');
     this.editing.set(true);
   }
@@ -130,6 +135,46 @@ export class Settings {
           this.error.set(errorMessage(e));
         },
       });
+  }
+
+  protected async pickLogo(event: Event): Promise<void> {
+    const picker = event.target as HTMLInputElement;
+    const file = picker.files?.[0];
+    picker.value = ''; // so picking the same file again still works
+    if (!file) return;
+    this.error.set('');
+    this.logoBusy.set(true);
+    try {
+      const image = await shrinkImage(file);
+      this.centre.uploadLogo(image).subscribe({
+        next: () => {
+          this.logoBusy.set(false);
+          this.toast.show('Logo saved. New receipts will show it.');
+        },
+        error: (e) => {
+          this.logoBusy.set(false);
+          this.error.set(errorMessage(e));
+        },
+      });
+    } catch (e) {
+      this.logoBusy.set(false);
+      this.error.set(e instanceof Error ? e.message : "The logo couldn't be saved.");
+    }
+  }
+
+  protected removeLogo(): void {
+    if (!confirm('Remove the logo from new receipts? Old receipts keep it.')) return;
+    this.logoBusy.set(true);
+    this.centre.removeLogo().subscribe({
+      next: () => {
+        this.logoBusy.set(false);
+        this.toast.show('Logo removed');
+      },
+      error: (e) => {
+        this.logoBusy.set(false);
+        this.error.set(errorMessage(e));
+      },
+    });
   }
 
   protected resetDemo(): void {

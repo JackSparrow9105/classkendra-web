@@ -48,6 +48,11 @@ export interface Centre {
   setupComplete: boolean;
   /** Language of WhatsApp messages to parents. */
   messageLanguage: Lang;
+  /** Printed on receipts. Empty until the owner fills it in. */
+  address?: string;
+  phone?: string;
+  /** Current logo (GET /centre/logo/{logoId}); null = no logo. */
+  logoId?: string | null;
 }
 
 export type Lang = 'en' | 'hi';
@@ -173,6 +178,39 @@ export interface PaymentView extends Payment {
   batchName: string;
   parentPhone: string;
   /** What the student still owes after this payment. */
+  balanceAfter: number;
+  /** Everything printed on the receipt, frozen when the payment was recorded (missing in demo mode). */
+  receipt?: ReceiptSnapshot;
+}
+
+/**
+ * A receipt exactly as it was at payment time. The receipt page draws only from this,
+ * so later changes to the centre or student never change an old receipt.
+ */
+export interface ReceiptSnapshot {
+  /** Which receipt design to draw it with. Old receipts keep their number, so they always look the same. */
+  layout: number;
+  /** True for payments made before receipts were frozen: filled in when first opened. */
+  rebuilt: boolean;
+  capturedAt: string;
+  centre: {
+    name: string;
+    city: string;
+    address: string;
+    phone: string;
+    logoId: string | null;
+    institutionType: InstitutionType;
+  };
+  student: { name: string; parentName: string; parentPhone: string; batchName: string };
+  receiptNo: string;
+  paidOn: string;
+  amount: number;
+  mode: PaymentMode;
+  note: string;
+  receivedBy: string;
+  lines: { headName: string; periodLabel: string; amount: number }[];
+  /** Online overpayment that went to no fee. */
+  unallocated: number;
   balanceAfter: number;
 }
 

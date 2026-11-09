@@ -1,19 +1,33 @@
 <div class="page">
   <header class="page-head no-print">
     <div class="row">
-      @if (p(); as r) {
-        <a [routerLink]="['/students', r.studentId]" class="icon-btn" aria-label="Back to student"><app-icon name="chevron-left" /></a>
+      @if (p(); as pay) {
+        <a [routerLink]="['/students', pay.studentId]" class="icon-btn" aria-label="Back to student"><app-icon name="chevron-left" /></a>
       }
       <h1 class="page-title">Receipt</h1>
     </div>
   </header>
 
-  @if (p(); as r) {
-    <article class="receipt" aria-label="Fee receipt">
+  @if (receipt(); as r) {
+    <!-- Receipt design 1. Drawn only from the frozen receipt (r), never from today's centre or student. -->
+    <article class="receipt" [attr.data-layout]="r.layout" aria-label="Fee receipt">
       <header class="r-head">
-        <div>
-          <strong class="org">{{ centre.centre()?.name }}</strong>
-          @if (centre.centre()?.city) { <span class="muted">{{ centre.centre()?.city }}</span> }
+        <div class="r-org">
+          @if (logo(); as src) {
+            <img class="r-logo" [src]="src" alt="" (error)="logoFailed.set(true)">
+          }
+          <div class="r-org-text">
+            <strong class="org">{{ r.centre.name }}</strong>
+            @if (r.centre.address) {
+              <span class="muted r-address">{{ r.centre.address }}</span>
+            }
+            @if (r.centre.city && !r.centre.address.toLowerCase().includes(r.centre.city.toLowerCase())) {
+              <span class="muted">{{ r.centre.city }}</span>
+            }
+            @if (r.centre.phone) {
+              <span class="muted">Phone: {{ r.centre.phone }}</span>
+            }
+          </div>
         </div>
         <div class="r-no">
           <span class="muted">Fee receipt</span>
@@ -23,16 +37,22 @@
 
       <dl class="r-meta">
         <div><dt>Date</dt><dd>{{ longDate(r.paidOn) }}</dd></div>
-        <div><dt>Student</dt><dd>{{ r.studentName }}</dd></div>
-        <div><dt>{{ labels.l().group }}</dt><dd>{{ r.batchName }}</dd></div>
+        <div><dt>Student</dt><dd>{{ r.student.name }}</dd></div>
+        <div><dt>{{ group() }}</dt><dd>{{ r.student.batchName }}</dd></div>
+        @if (r.student.parentName) {
+          <div><dt>Parent</dt><dd>{{ r.student.parentName }}</dd></div>
+        }
         <div><dt>Paid by</dt><dd>{{ r.mode }}@if (r.note) { · {{ r.note }} }</dd></div>
       </dl>
 
       <table class="r-table">
         <thead><tr><th scope="col">Fee</th><th scope="col">Period</th><th scope="col" class="num">Amount</th></tr></thead>
         <tbody>
-          @for (a of r.allocations; track a.dueId) {
+          @for (a of r.lines; track $index) {
             <tr><td>{{ a.headName }}</td><td>{{ a.periodLabel }}</td><td class="num">{{ rupees(a.amount) }}</td></tr>
+          }
+          @if (r.unallocated > 0) {
+            <tr><td colspan="2">Advance (not against any fee yet)</td><td class="num">{{ rupees(r.unallocated) }}</td></tr>
           }
         </tbody>
         <tfoot>

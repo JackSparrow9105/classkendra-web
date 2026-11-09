@@ -11,30 +11,68 @@
 .r-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
   padding-bottom: 16px;
   border-bottom: 1px dashed var(--border-strong);
 
-  > div {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
   .org {
     font-size: 18px;
+    line-height: 1.25;
   }
 
   span {
     font-size: 12px;
+    line-height: 1.4;
   }
 }
 
+.r-org {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.r-logo {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.r-org-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.r-address {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 .r-no {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
   text-align: right;
 
   strong {
     font-size: 15px;
+  }
+}
+
+@media (max-width: 420px) {
+  .r-head {
+    flex-direction: column;
+  }
+
+  .r-no {
+    text-align: left;
   }
 }
 

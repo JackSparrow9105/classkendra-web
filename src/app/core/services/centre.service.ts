@@ -7,7 +7,13 @@ import { daysBetween, isoDate } from '../../shared/format';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
-export type CentreInput = Pick<Centre, 'name' | 'ownerName' | 'city' | 'subjects' | 'sizeBand' | 'institutionType'>;
+export type CentreInput = Pick<Centre, 'name' | 'ownerName' | 'city' | 'subjects' | 'sizeBand' | 'institutionType'> &
+  Partial<Pick<Centre, 'address' | 'phone'>>;
+
+/** Address of a logo image (no login needed, so it works in <img>). */
+export function logoUrl(logoId: string | null | undefined): string | null {
+  return logoId ? `${environment.apiUrl}/centre/logo/${logoId}` : null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class CentreService {
@@ -59,6 +65,22 @@ export class CentreService {
     const call$ = environment.useMock
       ? (this.mock.update((s) => s.centre && (s.centre.messageLanguage = language)), this.mock.respond(this.mock.snapshot.centre!))
       : this.api.put<Centre>('centre/message-language', { language });
+    return call$.pipe(tap((c) => this.centre.set(c)));
+  }
+
+  /** POST /centre/logo (multipart "file") — becomes the logo on new receipts. */
+  uploadLogo(image: Blob): Observable<Centre> {
+    if (environment.useMock) return this.mock.fail('Logo upload needs the live API.');
+    const form = new FormData();
+    form.append('file', image, 'logo');
+    return this.api.post<Centre>('centre/logo', form).pipe(tap((c) => this.centre.set(c)));
+  }
+
+  /** DELETE /centre/logo — new receipts have no logo; old receipts keep theirs. */
+  removeLogo(): Observable<Centre> {
+    const call$ = environment.useMock
+      ? (this.mock.update((s) => s.centre && (s.centre.logoId = null)), this.mock.respond(this.mock.snapshot.centre!))
+      : this.api.delete<Centre>('centre/logo');
     return call$.pipe(tap((c) => this.centre.set(c)));
   }
 

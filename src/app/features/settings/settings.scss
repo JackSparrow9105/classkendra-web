@@ -101,3 +101,70 @@
   font-size: 15px;
   line-height: 1.5;
 }
+
+.centre-logo--img {
+  background: #fff;
+  border: 1px solid var(--border);
+  object-fit: contain;
+  padding: 4px;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-preview {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  object-fit: contain;
+  padding: 4px;
+}
+
+.logo-preview--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.logo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  label.btn {
+    cursor: pointer;
+  }
+
+  .disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+.hint {
+  font-weight: 400;
+  font-size: 12px;
+}
+
+span.hint:not(.label *) {
+  display: block;
+  margin-top: 6px;
+}
+
+textarea.input {
+  height: auto;
+  min-height: 72px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  line-height: 1.4;
+  resize: vertical;
+}
