@@ -7,9 +7,9 @@ export const environment = {
   otpProvider: 'firebase' as 'api' | 'firebase',
   // From Firebase console → Project settings → Your apps → Web app. These are public values, safe in the app.
   firebase: {
-    apiKey: 'PASTE_HERE',
-    authDomain: 'PASTE_HERE',      // e.g. class-kendra.firebaseapp.com
-    projectId: 'PASTE_HERE',       // e.g. class-kendra
-    appId: 'PASTE_HERE',           // e.g. 1:123456789:web:abc123
+    apiKey: 'AIzaSyDjlPtz3iLm2zVTbi4bjnkzaGtiEv9o1N4',
+    authDomain: 'class-kendra.firebaseapp.com',
+    projectId: 'class-kendra',
+    appId: '1:499014415591:web:0a198dc91e23287abe1e42',
   },
 };
