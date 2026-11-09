@@ -170,6 +170,46 @@ export class AuthService {
     );
   }
 
+  // ---------------- Backup email ----------------
+
+  /** POST /auth/email { email, pin? } -> { sentTo } — sends a code to the new backup email. */
+  startBackupEmail(email: string, pin: string | null): Observable<{ sentTo: string }> {
+    if (environment.useMock) return this.mock.respond({ sentTo: email.trim().toLowerCase() }, 400);
+    return this.api.post<{ sentTo: string }>('auth/email', { email, pin });
+  }
+
+  /** POST /auth/email/verify { code } -> user — the email is saved once the code is right. */
+  verifyBackupEmail(code: string, mockEmail = ''): Observable<AuthUser> {
+    const call$ = environment.useMock
+      ? code === '123456'
+        ? this.mock.respond({ ...this.user()!, email: mockEmail }, 300)
+        : this.mock.fail('That code is not right. In demo mode use 123456.')
+      : this.api.post<AuthUser>('auth/email/verify', { code });
+    return call$.pipe(tap((u) => this.saveUser({ ...this.user()!, ...u })));
+  }
+
+  /** DELETE /auth/email -> user */
+  removeBackupEmail(): Observable<AuthUser> {
+    const call$ = environment.useMock
+      ? this.mock.respond({ ...this.user()!, email: null }, 300)
+      : this.api.delete<AuthUser>('auth/email');
+    return call$.pipe(tap((u) => this.saveUser({ ...this.user()!, ...u })));
+  }
+
+  /** POST /auth/email-login { phone } -> { sentTo: "a•••@gmail.com" } — login code by email when the phone doesn't work. */
+  requestEmailLogin(phone: string): Observable<{ sentTo: string }> {
+    if (environment.useMock) return this.mock.respond({ sentTo: 'o•••@gmail.com' }, 400);
+    return this.api.post<{ sentTo: string }>('auth/email-login', { phone });
+  }
+
+  /** POST /auth/email-login/verify { phone, code } -> { token, user, deviceToken } — same as a phone OTP login. */
+  verifyEmailLogin(phone: string, code: string): Observable<AuthResponse> {
+    const call$ = environment.useMock
+      ? this.mockVerify(phone, code)
+      : this.api.post<AuthResponse>('auth/email-login/verify', { phone, code });
+    return call$.pipe(tap((res) => this.setSession(res)));
+  }
+
   /** GET /auth/me — picks up role, batches and PIN changes made elsewhere. */
   reloadUser(): Observable<AuthUser> {
     const call$ = environment.useMock ? this.mockMe() : this.api.get<AuthUser>('auth/me');

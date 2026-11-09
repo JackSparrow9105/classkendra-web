@@ -3,7 +3,11 @@
 
   <div class="intro">
     <h1>{{ 'Enter the code' | t }}</h1>
-    <p class="page-sub">{{ 'We sent a 6-digit code to +91 {phone}.' | t: { phone: phone } }}</p>
+    @if (mode() === 'email') {
+      <p class="page-sub">{{ 'We emailed a 6-digit code to {email}. It works for 10 minutes.' | t: { email: sentTo() } }}</p>
+    } @else {
+      <p class="page-sub">{{ 'We sent a 6-digit code to +91 {phone}.' | t: { phone: phone } }}</p>
+    }
   </div>
 
   <form class="stack" [formGroup]="form" (ngSubmit)="verify()" novalidate>
@@ -26,4 +30,16 @@
       <button type="button" class="btn btn-ghost resend" (click)="resend()">{{ 'Resend code' | t }}</button>
     }
   </form>
+
+  <div class="alt-login">
+    @if (mode() === 'phone') {
+      <button type="button" class="link-btn" [disabled]="emailBusy()" (click)="useEmail()">
+        <app-icon name="info" [size]="16" />
+        {{ (emailBusy() ? 'Sending…' : 'Number not working? Get the code on your backup email') | t }}
+      </button>
+    } @else {
+      <span class="fine">{{ "Can't find it? Check your Spam or Promotions folder." | t }}</span>
+      <button type="button" class="link-btn" (click)="usePhone()">{{ 'Get the code on my phone instead' | t }}</button>
+    }
+  </div>
 </div>

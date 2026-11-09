@@ -91,6 +91,9 @@
     }
   </section>
 
+  <!-- Backup email: login code by email if the mobile number stops working -->
+  <app-backup-email />
+
   @if (links().length) {
     <nav class="card card--list" aria-label="Settings">
       @for (l of links(); track l.path) {

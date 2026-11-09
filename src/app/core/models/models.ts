@@ -24,6 +24,8 @@ export interface AuthUser {
   hasPin?: boolean;
   /** Owner and office staff must set a PIN because the app shows fees; teachers may skip. */
   pinRequired?: boolean;
+  /** Verified backup email: login codes can be sent here if the mobile number stops working. Null = none. */
+  email?: string | null;
 }
 
 export interface AuthResponse {

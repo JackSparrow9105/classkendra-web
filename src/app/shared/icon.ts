@@ -4,7 +4,7 @@ export type IconName =
   | 'home' | 'wallet' | 'calendar-check' | 'users' | 'settings' | 'bell' | 'search'
   | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'check' | 'plus' | 'edit'
   | 'whatsapp' | 'cap' | 'upload' | 'phone' | 'info' | 'lock' | 'logout' | 'crown'
-  | 'user-plus' | 'x' | 'file' | 'trash' | 'download' | 'chart';
+  | 'user-plus' | 'x' | 'file' | 'trash' | 'download' | 'chart' | 'mail';
 
 /** Outline icons drawn inline so they inherit the text colour. */
 @Component({
@@ -32,6 +32,7 @@ export type IconName =
         @case ('cap') { <path d="M2 7.5 12 3l10 4.5-10 4.5zM6 9.5V15c0 1.5 2.7 3 6 3s6-1.5 6-3V9.5"/> }
         @case ('upload') { <path d="M12 16V4M7 9l5-5 5 5M4 20h16"/> }
         @case ('phone') { <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/> }
+        @case ('mail') { <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/> }
         @case ('info') { <circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/> }
         @case ('lock') { <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/> }
         @case ('logout') { <path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11"/> }

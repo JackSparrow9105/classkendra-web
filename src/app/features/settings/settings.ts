@@ -12,6 +12,7 @@ import { CentreService, logoUrl } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { BottomSheet } from '../../shared/bottom-sheet';
 import { shrinkImage } from '../../shared/image';
+import { BackupEmail } from './backup-email';
 import { Icon, IconName } from '../../shared/icon';
 import { ToastService } from '../../shared/toast';
 
@@ -24,7 +25,7 @@ interface SettingLink {
 
 @Component({
   selector: 'app-settings',
-  imports: [ReactiveFormsModule, RouterLink, Icon, BottomSheet, TPipe],
+  imports: [ReactiveFormsModule, RouterLink, Icon, BottomSheet, TPipe, BackupEmail],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings.html',
   styleUrl: './settings.scss',

@@ -1,0 +1,79 @@
+<section class="card card--list" aria-label="Backup email">
+  <button type="button" class="list-row link-row" (click)="show()">
+    <span class="avatar" [class.accent]="!!auth.user()?.email" [class.warn-tint]="!auth.user()?.email">
+      <app-icon name="mail" [size]="18" />
+    </span>
+    <span class="list-main">
+      <span class="list-title">{{ 'Backup email' | t }}</span>
+      @if (auth.user()?.email; as e) {
+        <span class="list-sub">{{ e }}</span>
+      } @else {
+        <span class="list-sub">{{ 'Not set. Add one so you can still log in if your number stops working.' | t }}</span>
+      }
+    </span>
+    <app-icon name="chevron-right" [size]="18" />
+  </button>
+</section>
+
+@if (open()) {
+  <app-bottom-sheet [title]="'Backup email' | t" (closed)="open.set(false)">
+    <div class="stack">
+      @switch (step()) {
+        @case ('view') {
+          <div class="current">
+            <app-icon name="mail" [size]="18" />
+            <strong>{{ auth.user()?.email }}</strong>
+          </div>
+          <p class="muted small">
+            {{ "If your mobile number stops working, tap 'Number not working?' on the code screen and we'll email your login code here." | t }}
+          </p>
+          <button type="button" class="btn btn-primary lg block" (click)="startChange()">{{ 'Change email' | t }}</button>
+          <button type="button" class="btn btn-ghost block danger" [disabled]="busy()" (click)="remove()">
+            <app-icon name="trash" [size]="16" /> {{ 'Remove backup email' | t }}
+          </button>
+        }
+
+        @case ('enter') {
+          <ol class="how">
+            <li>{{ 'Enter an email you can always open, e.g. your Gmail.' | t }}</li>
+            <li>{{ "We'll send a 6-digit code to it. Type it here to confirm." | t }}</li>
+            <li>{{ "If your number stops working, tap 'Number not working?' on the login code screen. The code comes to this email." | t }}</li>
+          </ol>
+          <div class="field">
+            <label class="label" for="be-email">{{ 'Email' | t }}</label>
+            <input id="be-email" class="input" type="email" inputmode="email" autocomplete="email"
+                   placeholder="name@gmail.com" [formControl]="email">
+          </div>
+          @if (auth.hasPin()) {
+            <div class="field">
+              <label class="label" for="be-pin">{{ 'Your app PIN' | t }}</label>
+              <input id="be-pin" class="input pin-input" type="password" inputmode="numeric" autocomplete="off"
+                     maxlength="4" placeholder="••••" [formControl]="pin" (input)="onPinInput()">
+              <span class="muted small">{{ 'So only you can change how you log in.' | t }}</span>
+            </div>
+          }
+          @if (error()) { <div class="note warn" role="alert">{{ error() | t }}</div> }
+          <button type="button" class="btn btn-primary lg block" [disabled]="busy()" (click)="send()">
+            {{ (busy() ? 'Sending…' : 'Send code') | t }}
+          </button>
+          @if (auth.user()?.email) {
+            <button type="button" class="btn btn-ghost block" (click)="step.set('view')">{{ 'Cancel' | t }}</button>
+          }
+        }
+
+        @case ('code') {
+          <p>{{ 'Enter the 6-digit code we emailed to {email}.' | t: { email: pendingEmail() } }}</p>
+          <label class="sr-only" for="be-code">{{ '6-digit code' | t }}</label>
+          <input id="be-code" class="input code-input" type="text" inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" [formControl]="code" (input)="onCodeInput()" [class.invalid]="!!error()">
+          @if (error()) { <span class="error-text" role="alert">{{ error() | t }}</span> }
+          <button type="button" class="btn btn-primary lg block" [disabled]="busy()" (click)="verify()">
+            {{ (busy() ? 'Checking…' : 'Confirm email') | t }}
+          </button>
+          <span class="muted small center">{{ "Can't find it? Check your Spam or Promotions folder." | t }}</span>
+          <button type="button" class="btn btn-ghost block" (click)="startChange()">{{ 'Use another email' | t }}</button>
+        }
+      }
+    </div>
+  </app-bottom-sheet>
+}

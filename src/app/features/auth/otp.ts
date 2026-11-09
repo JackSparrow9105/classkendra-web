@@ -31,6 +31,11 @@ export class Otp {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly secondsLeft = signal(30);
+  /** 'email': the number isn't working, so the code went to the backup email instead. */
+  protected readonly mode = signal<'phone' | 'email'>('phone');
+  /** Where the email code went, partly hidden ("a•••@gmail.com"). */
+  protected readonly sentTo = signal('');
+  protected readonly emailBusy = signal(false);
 
   constructor() {
     if (!this.phone) {
@@ -55,7 +60,11 @@ export class Otp {
     }
     if (this.busy()) return;
     this.busy.set(true);
-    this.auth.verifyOtp(this.phone, this.code.value).subscribe({
+    const login$ =
+      this.mode() === 'email'
+        ? this.auth.verifyEmailLogin(this.phone, this.code.value)
+        : this.auth.verifyOtp(this.phone, this.code.value);
+    login$.subscribe({
       next: () => {
         // First login on this phone: choose the app PIN (required for owner and staff).
         if (this.auth.shouldAskForPin()) this.router.navigateByUrl('/set-pin');
@@ -70,6 +79,37 @@ export class Otp {
   }
 
   protected resend(): void {
+    if (this.mode() === 'email') {
+      this.useEmail();
+      return;
+    }
     this.auth.requestOtp(this.phone).subscribe(() => this.secondsLeft.set(30));
+  }
+
+  /** "Number not working?" — send the login code to the backup email instead. */
+  protected useEmail(): void {
+    if (this.emailBusy()) return;
+    this.emailBusy.set(true);
+    this.error.set('');
+    this.auth.requestEmailLogin(this.phone).subscribe({
+      next: (r) => {
+        this.sentTo.set(r.sentTo);
+        this.mode.set('email');
+        this.code.setValue('');
+        this.secondsLeft.set(60);
+        this.emailBusy.set(false);
+      },
+      error: (e) => {
+        this.error.set(errorMessage(e));
+        this.emailBusy.set(false);
+      },
+    });
+  }
+
+  /** Back to the code on the phone. */
+  protected usePhone(): void {
+    this.mode.set('phone');
+    this.code.setValue('');
+    this.error.set('');
   }
 }
