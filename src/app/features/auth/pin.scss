@@ -1,0 +1,127 @@
+/* Shared by the Set PIN and Unlock screens. */
+
+.pin-page {
+  max-width: 440px;
+}
+
+.pin-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  margin-top: 12px;
+
+  .intro {
+    align-items: center;
+  }
+}
+
+.pin-icon,
+.pin-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+}
+
+.pin-avatar {
+  border-radius: 999px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* One real input (so typing, paste and screen readers work) under four dots. */
+.pin-field {
+  position: relative;
+  align-self: center;
+  width: 232px;
+  height: 64px;
+  margin-top: 8px;
+}
+
+.pin-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  font-size: 16px; // stops iOS zooming in
+  border: 0;
+  cursor: text;
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: space-between;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pin-dot {
+  width: 52px;
+  height: 64px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border-strong);
+  background: var(--surface);
+  position: relative;
+  transition: border-color 0.15s;
+
+  &.on::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 999px;
+    background: var(--ink);
+  }
+
+  &.bad {
+    border-color: var(--warn);
+  }
+}
+
+.pin-field:focus-within .pin-dot {
+  border-color: var(--accent);
+}
+
+.pin-error {
+  text-align: center;
+}
+
+.pin-notes {
+  margin: 0;
+  padding: 14px 16px 14px 32px;
+  border-radius: var(--radius);
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pin-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+}
+
+.locked-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--warn-tint);
+  color: var(--warn-dark);
+  text-align: center;
+}

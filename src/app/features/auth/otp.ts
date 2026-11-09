@@ -7,6 +7,7 @@ import { CentreService } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { Icon } from '../../shared/icon';
 import { TPipe } from '../../core/i18n/i18n.service';
+import { continueAfterLogin } from './after-login';
 
 @Component({
   selector: 'app-otp',
@@ -55,14 +56,10 @@ export class Otp {
     if (this.busy()) return;
     this.busy.set(true);
     this.auth.verifyOtp(this.phone, this.code.value).subscribe({
-      next: (res) => {
-        if (!res.user.tenantId) {
-          this.router.navigateByUrl('/setup/centre');
-          return;
-        }
-        this.centre.load().subscribe((c) =>
-          this.router.navigateByUrl(this.auth.isTeacher() ? '/home' : c?.setupComplete ? '/dashboard' : '/setup/batches'),
-        );
+      next: () => {
+        // First login on this phone: choose the app PIN (required for owner and staff).
+        if (this.auth.shouldAskForPin()) this.router.navigateByUrl('/set-pin');
+        else continueAfterLogin(this.router, this.auth, this.centre);
       },
       error: (e) => {
         this.error.set(errorMessage(e));

@@ -1,0 +1,57 @@
+<div class="page page--flow auth pin-page">
+  <div class="brand">
+    <img class="logo" src="brand/classkendra-mark.svg" alt="" width="40" height="40" />
+    <span class="brand-name">ClassKendra</span>
+  </div>
+
+  <div class="pin-head">
+    <span class="pin-avatar" aria-hidden="true">{{ avatar }}</span>
+    <div class="intro">
+      <h1>{{ name ? ('Welcome back, {name}' | t: { name: name }) : ('Welcome back' | t) }}</h1>
+      <p class="page-sub">
+        @if (locked()) {
+          {{ 'Your PIN is locked.' | t }}
+        } @else {
+          {{ 'Enter your 4-digit PIN' | t }}@if (phoneTail) { · +91 ••••••{{ phoneTail }} }
+        }
+      </p>
+    </div>
+  </div>
+
+  @if (locked()) {
+    <div class="locked-box" role="alert">
+      <strong>{{ '5 wrong tries' | t }}</strong>
+      <span>{{ 'For your safety, log in with an OTP to your mobile. Your PIN will work again after that.' | t }}</span>
+      <button type="button" class="btn btn-primary block" (click)="loginWithOtp()">{{ 'Log in with OTP' | t }}</button>
+    </div>
+  } @else {
+    <form class="stack" (ngSubmit)="onInput()" novalidate>
+      <label class="sr-only" for="unlock-pin">{{ '4-digit PIN' | t }}</label>
+      <div class="pin-field">
+        <input id="unlock-pin" class="pin-input" type="password" inputmode="numeric" autocomplete="current-password"
+               maxlength="4" [formControl]="pin" (input)="onInput()" [readonly]="busy()" autofocus
+               [attr.aria-invalid]="!!error()" [attr.aria-describedby]="error() ? 'unlock-error' : null">
+        <div class="pin-dots" aria-hidden="true">
+          @for (d of dots; track d) {
+            <span class="pin-dot" [class.on]="d < filled()" [class.bad]="!!error()"></span>
+          }
+        </div>
+      </div>
+      @if (error()) {
+        <span class="error-text pin-error" id="unlock-error" role="alert">{{ error() | t }}</span>
+      }
+      @if (busy()) {
+        <span class="fine">{{ 'Checking…' | t }}</span>
+      }
+    </form>
+  }
+
+  <div class="spacer"></div>
+
+  <div class="pin-links">
+    @if (!locked()) {
+      <button type="button" class="btn btn-ghost" (click)="forgot()">{{ 'Forgot PIN?' | t }}</button>
+    }
+    <button type="button" class="btn btn-ghost" (click)="notMe()">{{ 'Not you? Log out' | t }}</button>
+  </div>
+</div>

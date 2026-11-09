@@ -1,0 +1,52 @@
+<div class="page page--flow auth pin-page">
+  @if (changing) {
+    <a routerLink="/settings" class="icon-btn" [attr.aria-label]="'Back' | t"><app-icon name="chevron-left" /></a>
+  }
+
+  <div class="pin-head">
+    <span class="pin-icon"><app-icon name="lock" [size]="26" /></span>
+    <div class="intro">
+      @if (step() === 'enter') {
+        <h1>{{ (changing ? 'Choose a new PIN' : 'Set your app PIN') | t }}</h1>
+        <p class="page-sub">{{ "Next time, open ClassKendra on this phone with this 4-digit PIN. No OTP needed." | t }}</p>
+      } @else {
+        <h1>{{ 'Enter the same PIN again' | t }}</h1>
+        <p class="page-sub">{{ 'Just to make sure.' | t }}</p>
+      }
+    </div>
+  </div>
+
+  <form class="stack" (ngSubmit)="onInput()" novalidate>
+    <label class="sr-only" for="pin">{{ (step() === 'enter' ? 'New 4-digit PIN' : 'Confirm PIN') | t }}</label>
+    <div class="pin-field">
+      <input id="pin" class="pin-input" type="password" inputmode="numeric" autocomplete="off" maxlength="4"
+             [formControl]="pin" (input)="onInput()" [readonly]="busy()" autofocus
+             [attr.aria-invalid]="!!error()" [attr.aria-describedby]="error() ? 'pin-error' : null">
+      <div class="pin-dots" aria-hidden="true">
+        @for (d of dots(); track d) {
+          <span class="pin-dot" [class.on]="d < filled()" [class.bad]="!!error()"></span>
+        }
+      </div>
+    </div>
+    @if (error()) {
+      <span class="error-text pin-error" id="pin-error" role="alert">{{ error() | t }}</span>
+    }
+    @if (busy()) {
+      <span class="fine">{{ 'Saving…' | t }}</span>
+    }
+  </form>
+
+  <div class="spacer"></div>
+
+  <ul class="pin-notes">
+    <li>{{ 'Asked after 10 minutes away from the app.' | t }}</li>
+    <li>{{ "Forgot it? Tap “Forgot PIN?” and log in with OTP." | t }}</li>
+    @if (auth.pinRequired()) {
+      <li>{{ 'Needed for owners and office staff because the app shows fees.' | t }}</li>
+    }
+  </ul>
+
+  @if (canSkip()) {
+    <button type="button" class="btn btn-ghost block" (click)="skip()">{{ 'Skip for now' | t }}</button>
+  }
+</div>

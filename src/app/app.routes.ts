@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, centreGuard, guestGuard, officeGuard, ownerGuard, teacherGuard } from './core/guards/guards';
+import { authGuard, centreGuard, guestGuard, lockedGuard, officeGuard, ownerGuard, signedInGuard, teacherGuard } from './core/guards/guards';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -7,6 +7,9 @@ export const routes: Routes = [
   // Sign up / sign in (owners, office staff and teachers all use mobile + OTP)
   { path: 'login', canActivate: [guestGuard], loadComponent: () => import('./features/auth/login').then((m) => m.Login) },
   { path: 'otp', canActivate: [guestGuard], loadComponent: () => import('./features/auth/otp').then((m) => m.Otp) },
+  // App PIN: chosen after the first OTP login, asked again after 10 minutes away
+  { path: 'set-pin', canActivate: [signedInGuard], loadComponent: () => import('./features/auth/set-pin').then((m) => m.SetPin) },
+  { path: 'unlock', canActivate: [lockedGuard], loadComponent: () => import('./features/auth/unlock').then((m) => m.Unlock) },
 
   // Public parent payment page (opened from the WhatsApp reminder; no login)
   { path: 'pay/:token', loadComponent: () => import('./features/parent-pay/parent-pay').then((m) => m.ParentPay) },

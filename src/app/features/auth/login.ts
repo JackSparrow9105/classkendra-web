@@ -17,7 +17,8 @@ export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  protected readonly phone = new FormControl('', {
+  // Pre-filled after "Forgot PIN?" or a locked PIN.
+  protected readonly phone = new FormControl(this.auth.pendingPhone(), {
     nonNullable: true,
     validators: [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)],
   });
