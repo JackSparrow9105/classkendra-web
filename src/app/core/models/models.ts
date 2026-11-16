@@ -9,7 +9,11 @@
  */
 
 export type InstitutionType = 'Coaching' | 'School';
-export type PlanCode = 'Trial' | 'Starter' | 'Growth' | 'Pro' | 'School' | 'SchoolPlus' | 'SchoolMax';
+export type PlanCode = 'Trial' | 'Free'
+  | 'TuitionLite' | 'Starter' | 'Growth' | 'Pro'
+  | 'School100' | 'School200' | 'School300' | 'School500' | 'School1000'
+  // old school plans: kept so schools already on them still load
+  | 'School' | 'SchoolPlus' | 'SchoolMax';
 export type UserRole = 'Owner' | 'Staff' | 'Teacher';
 
 export interface AuthUser {
@@ -348,6 +352,8 @@ export interface Plan {
   yearly: number;
   messages: number;
   popular?: boolean;
+  /** Most students the plan allows (for the price per student). 0 or missing = no limit shown. */
+  maxStudents?: number;
 }
 
 export interface StudentImportRow {

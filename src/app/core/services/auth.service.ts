@@ -56,15 +56,24 @@ export class AuthService {
   );
   /** Phone number carried from the login screen to the OTP screen. */
   readonly pendingPhone = signal('');
+  /**
+   * Demo mode: the API returns the login code instead of sending it (Otp:ShowOnScreen on the server),
+   * and the OTP screen shows it. Empty when the code was really sent.
+   */
+  readonly demoCode = signal('');
 
-  /** POST /auth/otp  { phone } */
+  /** POST /auth/otp  { phone } → 204, or { demoCode } when the server is in demo mode */
   requestOtp(phone: string): Observable<void> {
     this.pendingPhone.set(phone);
+    this.demoCode.set('');
     if (environment.useMock) return this.mock.respond(undefined, 500);
     // SMS through Firebase: the code is sent from the browser, not by our API.
     if (environment.otpProvider === 'firebase')
       return from(this.firebase.send(phone, this.i18n.lang()));
-    return this.api.post<void>('auth/otp', { phone });
+    return this.api.post<{ demoCode?: string } | null>('auth/otp', { phone }).pipe(
+      tap((res) => this.demoCode.set(res?.demoCode ?? '')),
+      map(() => undefined),
+    );
   }
 
   /** POST /auth/verify  { phone, code } -> { token, user, deviceToken } */

@@ -23,6 +23,9 @@ export class Otp {
 
   protected readonly phone = this.auth.pendingPhone();
   protected readonly isDemo = environment.useMock;
+  /** Demo mode on the server: the code to show on screen (nothing was sent). */
+  protected readonly demoCode = this.auth.demoCode;
+  protected readonly viaWhatsApp = environment.otpProvider === 'api';
   protected readonly code = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required, Validators.pattern(/^\d{6}$/)],
@@ -44,6 +47,12 @@ export class Otp {
     }
     const timer = setInterval(() => this.secondsLeft.update((s) => Math.max(0, s - 1)), 1000);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
+  }
+
+  /** "Use this code" in demo mode. */
+  protected useDemoCode(): void {
+    this.code.setValue(this.demoCode());
+    this.verify();
   }
 
   protected onInput(): void {

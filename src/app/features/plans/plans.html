@@ -12,9 +12,13 @@
         <span class="hero-label">Free trial</span>
         <span class="status-title">{{ centre.trialDaysLeft() }} days left</span>
         <span class="hero-label">Ends {{ niceDate(c.trialEndsOn) }}. Your data stays safe whatever you decide.</span>
+      } @else if (c.plan === 'Free') {
+        <span class="hero-label">Current plan</span>
+        <span class="status-title">Free</span>
+        <span class="hero-label">Up to 25 students and the owner login only. Choose a plan for staff and teacher logins and the UPI payment link.</span>
       } @else {
         <span class="hero-label">Current plan</span>
-        <span class="status-title">{{ c.plan }}</span>
+        <span class="status-title">{{ currentPlanName() }}</span>
       }
       <div class="stack" style="gap: 6px">
         <div class="row" style="justify-content: space-between">
@@ -41,15 +45,27 @@
           @if (p.popular) { <span class="badge accent">Most chosen</span> }
         </div>
         <span class="muted">{{ p.students }}</span>
-        <div class="price">
-          <strong>{{ rupees(perMonth(p)) }}</strong><span class="muted">/month</span>
-        </div>
-        <span class="muted small">
-          @if (cycle() === 'yearly') { {{ rupees(p.yearly) }} billed yearly } @else { Billed monthly }
-          · {{ p.messages }} messages
-        </span>
+        @if (!p.monthly) {
+          <div class="price">
+            <strong>Free</strong><span class="muted">forever</span>
+          </div>
+          <span class="muted small">{{ p.messages }} messages · owner login only · no UPI payment link</span>
+        } @else {
+          <div class="price">
+            <strong>{{ rupees(perMonth(p)) }}</strong><span class="muted">/month + GST</span>
+          </div>
+          @if (perStudent(p)) {
+            <span class="per-student">Just <b>{{ perStudent(p) }}</b> per student / month</span>
+          }
+          <span class="muted small">
+            @if (cycle() === 'yearly') { {{ rupees(p.yearly) }} billed yearly } @else { Billed monthly }
+            · {{ p.messages }} messages
+          </span>
+        }
         @if (centre.centre()?.plan === p.code) {
           <button type="button" class="btn btn-outline block" disabled>Current plan</button>
+        } @else if (!p.monthly) {
+          <span class="muted small free-note">Your centre moves to Free by itself if you don't choose a plan after the trial.</span>
         } @else {
           <button type="button" class="btn block" [class.btn-primary]="p.popular" [class.btn-outline]="!p.popular"
                   [disabled]="busyPlan() !== null" (click)="choose(p)">
@@ -63,11 +79,11 @@
   @if (error()) { <div class="note warn" role="alert">{{ error() }}</div> }
 
   <section class="card stack">
-    <strong>Every plan includes</strong>
+    <strong>Every paid plan includes</strong>
     @for (f of features; track f) {
       <span class="row feature"><app-icon name="check" [size]="16" [stroke]="2.2" /> {{ f }}</span>
     }
   </section>
 
-  <p class="muted small" style="text-align: center">Pay by UPI AutoPay, card or net banking. Cancel any time.</p>
+  <p class="muted small" style="text-align: center">Prices are + GST. Pay by UPI, card or net banking. Cancel any time.</p>
 </div>

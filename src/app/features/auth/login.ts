@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { Icon } from '../../shared/icon';
 import { I18nService, TPipe } from '../../core/i18n/i18n.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -28,6 +29,8 @@ export class Login {
   protected readonly submitted = signal(false);
 
   protected readonly i18n = inject(I18nService);
+  /** 'api' = the API sends the code on WhatsApp; 'firebase' = SMS. */
+  protected readonly viaWhatsApp = environment.otpProvider === 'api';
 
   protected readonly benefits = [
     'Fee reminders go out on WhatsApp',

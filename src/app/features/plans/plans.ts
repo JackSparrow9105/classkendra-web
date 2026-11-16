@@ -32,11 +32,18 @@ export class Plans {
     return c ? Math.min(100, Math.round((c.messagesUsed / c.messageLimit) * 100)) : 0;
   });
 
+  /** Name of the centre's plan ("School 200"), or its code until the list has loaded. */
+  protected readonly currentPlanName = computed(() => {
+    const code = this.centre.centre()?.plan;
+    return this.plans().find((p) => p.code === code)?.name ?? code ?? '';
+  });
+
   protected readonly features = [
-    'Automatic WhatsApp fee reminders',
-    'Absent alerts to parents',
-    'Online fee collection by UPI',
-    'Staff logins',
+    'All features',
+    'Staff and teacher logins',
+    'Online fee collection by UPI payment link',
+    'Automatic WhatsApp fee reminders and absent alerts',
+    '30-day free trial',
     'WhatsApp support from us',
   ];
 
@@ -56,6 +63,13 @@ export class Plans {
 
   protected perMonth(p: Plan): number {
     return this.cycle() === 'yearly' ? Math.round(p.yearly / 12) : p.monthly;
+  }
+
+  /** "₹5.00" per student per month at the plan's full size ('' for the Free plan or no limit). */
+  protected perStudent(p: Plan): string {
+    if (!p.monthly || !p.maxStudents) return '';
+    const monthly = this.cycle() === 'yearly' ? p.yearly / 12 : p.monthly;
+    return '₹' + (Math.round((monthly * 100) / p.maxStudents) / 100).toFixed(2);
   }
 
   protected choose(p: Plan): void {

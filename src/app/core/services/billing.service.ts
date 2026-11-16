@@ -8,16 +8,21 @@ import { CentreService } from './centre.service';
 
 export type BillingCycle = 'monthly' | 'yearly';
 
+// Demo (mock) only: the real list comes from the API's Plans table (Database/2026-11-16-new-plans.sql).
 const COACHING_PLANS: Plan[] = [
-  { code: 'Starter', name: 'Starter', students: 'Up to 100 students', monthly: 999, yearly: 9990, messages: 1000 },
-  { code: 'Growth', name: 'Growth', students: 'Up to 300 students', monthly: 1999, yearly: 19990, messages: 3000, popular: true },
-  { code: 'Pro', name: 'Pro', students: 'Up to 600 students', monthly: 3499, yearly: 34990, messages: 6000 },
+  { code: 'Free', name: 'Free', students: 'Up to 25 students', monthly: 0, yearly: 0, messages: 100, maxStudents: 25 },
+  { code: 'TuitionLite', name: 'Tuition Lite', students: 'Up to 50 students', monthly: 399, yearly: 3990, messages: 500, maxStudents: 50 },
+  { code: 'Starter', name: 'Starter', students: 'Up to 100 students', monthly: 799, yearly: 7990, messages: 1000, maxStudents: 100 },
+  { code: 'Growth', name: 'Growth', students: 'Up to 300 students', monthly: 1999, yearly: 19990, messages: 3000, popular: true, maxStudents: 300 },
+  { code: 'Pro', name: 'Pro', students: 'Up to 600 students', monthly: 3499, yearly: 34990, messages: 6000, maxStudents: 600 },
 ];
 
 const SCHOOL_PLANS: Plan[] = [
-  { code: 'School', name: 'School', students: 'Up to 500 students', monthly: 2999, yearly: 29990, messages: 5000 },
-  { code: 'SchoolPlus', name: 'School Plus', students: 'Up to 1,500 students', monthly: 5999, yearly: 59990, messages: 15000, popular: true },
-  { code: 'SchoolMax', name: 'School Max', students: 'Up to 3,000 students', monthly: 9999, yearly: 99990, messages: 30000 },
+  { code: 'School100', name: 'School 100', students: 'Up to 100 students', monthly: 749, yearly: 7490, messages: 300, maxStudents: 100 },
+  { code: 'School200', name: 'School 200', students: 'Up to 200 students', monthly: 999, yearly: 9990, messages: 600, popular: true, maxStudents: 200 },
+  { code: 'School300', name: 'School 300', students: 'Up to 300 students', monthly: 1299, yearly: 12990, messages: 900, maxStudents: 300 },
+  { code: 'School500', name: 'School 500', students: 'Up to 500 students', monthly: 1899, yearly: 18990, messages: 1500, maxStudents: 500 },
+  { code: 'School1000', name: 'School 1000', students: 'Up to 1,000 students', monthly: 2999, yearly: 29990, messages: 3000, maxStudents: 1000 },
 ];
 
 export interface CheckoutResponse {

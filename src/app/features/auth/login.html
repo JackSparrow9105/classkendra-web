@@ -37,6 +37,6 @@
     <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">
       {{ (busy() ? 'Sending code…' : 'Get OTP') | t }}
     </button>
-    <p class="fine">{{ "We'll send a 6-digit code by SMS. By continuing you agree to the" | t }} <a href="#">{{ 'Terms' | t }}</a>.</p>
+    <p class="fine">{{ (viaWhatsApp ? "We'll send a 6-digit code on WhatsApp. By continuing you agree to the" : "We'll send a 6-digit code by SMS. By continuing you agree to the") | t }} <a href="#">{{ 'Terms' | t }}</a>.</p>
   </form>
 </div>

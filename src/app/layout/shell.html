@@ -35,6 +35,12 @@
       <span>{{ 'Free trial · {n} days left' | t: { n: centre.trialDaysLeft() ?? 0 } }}</span>
     </a>
   }
+  @if (auth.isOwner() && centre.isFree()) {
+    <a class="trial" routerLink="/plans">
+      <app-icon name="crown" [size]="18" />
+      <span>{{ 'Free plan · Upgrade' | t }}</span>
+    </a>
+  }
 </aside>
 
 <main class="content">

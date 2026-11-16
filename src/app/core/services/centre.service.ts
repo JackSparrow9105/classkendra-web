@@ -23,6 +23,8 @@ export class CentreService {
 
   /** Cached centre for the header, trial badge and message previews. */
   readonly centre = signal<Centre | null>(null);
+  /** Tuition / coaching centre on the free-forever plan (after the trial): owner login only. */
+  readonly isFree = computed(() => this.centre()?.plan === 'Free');
   readonly trialDaysLeft = computed(() => {
     const c = this.centre();
     return c?.plan === 'Trial' ? Math.max(0, daysBetween(isoDate(), c.trialEndsOn)) : null;

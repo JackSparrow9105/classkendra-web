@@ -6,9 +6,22 @@
     @if (mode() === 'email') {
       <p class="page-sub">{{ 'We emailed a 6-digit code to {email}. It works for 10 minutes.' | t: { email: sentTo() } }}</p>
     } @else {
-      <p class="page-sub">{{ 'We sent a 6-digit code to +91 {phone}.' | t: { phone: phone } }}</p>
+      @if (demoCode()) {
+        <p class="page-sub">{{ 'Your 6-digit code for +91 {phone} is shown below.' | t: { phone: phone } }}</p>
+      } @else {
+        <p class="page-sub">{{ (viaWhatsApp ? 'We sent a 6-digit code on WhatsApp to +91 {phone}.' : 'We sent a 6-digit code to +91 {phone}.') | t: { phone: phone } }}</p>
+      }
     }
   </div>
+
+  @if (demoCode() && mode() === 'phone') {
+    <div class="demo-code" role="status">
+      <span class="demo-code-label">{{ 'Demo login code' | t }}</span>
+      <strong class="demo-code-value">{{ demoCode() }}</strong>
+      <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="useDemoCode()">{{ 'Use this code' | t }}</button>
+      <span class="fine">{{ 'Demo mode: codes are shown here instead of being sent on WhatsApp.' | t }}</span>
+    </div>
+  }
 
   <form class="stack" [formGroup]="form" (ngSubmit)="verify()" novalidate>
     <label class="sr-only" for="otp">{{ '6-digit code' | t }}</label>
