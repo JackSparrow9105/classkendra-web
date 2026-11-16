@@ -59,6 +59,45 @@
     }
   </section>
 
+  <!-- Which WhatsApp messages go to parents (owner only) -->
+  @if (auth.isOwner() && centre.centre(); as c) {
+    <section class="card card--list" aria-labelledby="msg-settings-title">
+      <h2 class="label msg-title" id="msg-settings-title">{{ 'WhatsApp messages to parents' | t }}</h2>
+
+      <div class="pref-row">
+        <span class="pref-label">
+          {{ 'Payment receipts' | t }}
+          <span class="muted pref-sub">{{ 'A receipt on WhatsApp after every payment' | t }}</span>
+        </span>
+        <div class="seg compact" role="radiogroup" [attr.aria-label]="'Payment receipts' | t">
+          <button type="button" role="radio" [class.on]="c.sendReceipts !== false" [attr.aria-checked]="c.sendReceipts !== false" (click)="setReceipts(true)">{{ 'On' | t }}</button>
+          <button type="button" role="radio" [class.on]="c.sendReceipts === false" [attr.aria-checked]="c.sendReceipts === false" (click)="setReceipts(false)">{{ 'Off' | t }}</button>
+        </div>
+      </div>
+
+      <div class="pref-row pref-row--stacked">
+        <span class="pref-label">
+          {{ 'Absent alerts' | t }}
+          <span class="muted pref-sub">{{ 'Every absence, or only when a student misses 2 classes in a row' | t }}</span>
+        </span>
+        <div class="seg compact seg--three" role="radiogroup" [attr.aria-label]="'Absent alerts' | t">
+          <button type="button" role="radio" [class.on]="(c.absentAlerts ?? 'Every') === 'Every'" [attr.aria-checked]="(c.absentAlerts ?? 'Every') === 'Every'" (click)="setAbsentAlerts('Every')">{{ 'Every time' | t }}</button>
+          <button type="button" role="radio" [class.on]="c.absentAlerts === 'TwoDays'" [attr.aria-checked]="c.absentAlerts === 'TwoDays'" (click)="setAbsentAlerts('TwoDays')">{{ 'After 2 days' | t }}</button>
+          <button type="button" role="radio" [class.on]="c.absentAlerts === 'Off'" [attr.aria-checked]="c.absentAlerts === 'Off'" (click)="setAbsentAlerts('Off')">{{ 'Off' | t }}</button>
+        </div>
+      </div>
+
+      <a class="list-row link-row" routerLink="/fees/setup">
+        <span class="avatar accent"><app-icon name="bell" [size]="18" /></span>
+        <span class="list-main">
+          <span class="list-title">{{ 'Fee reminders' | t }}</span>
+          <span class="list-sub">{{ 'Choose the days reminders go out, in fee settings' | t }}</span>
+        </span>
+        <app-icon name="chevron-right" [size]="18" />
+      </a>
+    </section>
+  }
+
   <!-- App PIN: asked after 10 minutes away instead of an OTP -->
   <section class="card card--list" aria-label="App PIN">
     @if (auth.hasPin()) {

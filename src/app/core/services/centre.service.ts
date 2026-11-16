@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
-import { Centre, Lang } from '../models/models';
+import { Centre, Lang, AbsentAlertMode } from '../models/models';
 import { daysBetween, isoDate } from '../../shared/format';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
@@ -67,6 +67,15 @@ export class CentreService {
     const call$ = environment.useMock
       ? (this.mock.update((s) => s.centre && (s.centre.messageLanguage = language)), this.mock.respond(this.mock.snapshot.centre!))
       : this.api.put<Centre>('centre/message-language', { language });
+    return call$.pipe(tap((c) => this.centre.set(c)));
+  }
+
+  /** PUT /centre/message-settings { sendReceipts, absentAlerts } — which WhatsApp messages parents get. */
+  setMessageSettings(sendReceipts: boolean, absentAlerts: AbsentAlertMode): Observable<Centre> {
+    const call$ = environment.useMock
+      ? (this.mock.update((s) => s.centre && Object.assign(s.centre, { sendReceipts, absentAlerts })),
+        this.mock.respond(this.mock.snapshot.centre!))
+      : this.api.put<Centre>('centre/message-settings', { sendReceipts, absentAlerts });
     return call$.pipe(tap((c) => this.centre.set(c)));
   }
 

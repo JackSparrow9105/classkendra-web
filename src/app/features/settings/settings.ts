@@ -6,7 +6,7 @@ import { MockDb } from '../../core/mock/mock-db';
 import { LabelService } from '../../core/labels';
 import { I18nService, TPipe } from '../../core/i18n/i18n.service';
 import { InstallService } from '../../core/install.service';
-import { Lang } from '../../core/models/models';
+import { AbsentAlertMode, Lang } from '../../core/models/models';
 import { AuthService } from '../../core/services/auth.service';
 import { CentreService, logoUrl } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
@@ -100,6 +100,31 @@ export class Settings {
     this.centre.setMessageLanguage(l).subscribe(() =>
       this.toast.show(l === 'hi' ? 'Parents will get WhatsApp messages in Hindi' : 'Parents will get WhatsApp messages in English'),
     );
+  }
+
+  /** Payment receipts on WhatsApp: on unless the owner turned them off. */
+  protected setReceipts(on: boolean): void {
+    const c = this.centre.centre();
+    if (!c) return;
+    this.centre.setMessageSettings(on, c.absentAlerts ?? 'Every').subscribe({
+      next: () => this.toast.show(on ? 'Parents will get a WhatsApp receipt for every payment' : 'WhatsApp receipts turned off'),
+      error: (e) => this.toast.show(errorMessage(e)),
+    });
+  }
+
+  /** Absent alerts: every absence, only after 2 classes in a row, or off. */
+  protected setAbsentAlerts(mode: AbsentAlertMode): void {
+    const c = this.centre.centre();
+    if (!c) return;
+    const msg = {
+      Every: 'Parents will get an alert for every absence',
+      TwoDays: 'Parents will get an alert when a student misses 2 classes in a row',
+      Off: 'Absent alerts turned off',
+    }[mode];
+    this.centre.setMessageSettings(c.sendReceipts ?? true, mode).subscribe({
+      next: () => this.toast.show(msg),
+      error: (e) => this.toast.show(errorMessage(e)),
+    });
   }
 
   protected async install(): Promise<void> {

@@ -59,7 +59,13 @@ export interface Centre {
   phone?: string;
   /** Current logo (GET /centre/logo/{logoId}); null = no logo. */
   logoId?: string | null;
+  /** WhatsApp receipt to the parent after every payment (default on). */
+  sendReceipts?: boolean;
+  /** Absent alerts: every absence, only after 2 classes in a row, or off (default 'Every'). */
+  absentAlerts?: AbsentAlertMode;
 }
+
+export type AbsentAlertMode = 'Every' | 'TwoDays' | 'Off';
 
 export type Lang = 'en' | 'hi';
 
