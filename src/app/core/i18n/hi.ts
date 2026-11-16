@@ -59,6 +59,8 @@ export const HI: Record<string, string> = {
   'Free plan · Upgrade': 'फ़्री प्लान · अपग्रेड करें',
   'WhatsApp messages to parents': 'अभिभावकों को WhatsApp मैसेज',
   'Payment receipts': 'भुगतान की रसीद',
+  'Admission confirmations': 'एडमिशन की पुष्टि',
+  'Admission number and fees due, when you add a student': 'नया छात्र जोड़ने पर एडमिशन नंबर और बकाया फीस',
   'A receipt on WhatsApp after every payment': 'हर भुगतान के बाद WhatsApp पर रसीद',
   'Absent alerts': 'अनुपस्थिति अलर्ट',
   'Every absence, or only when a student misses 2 classes in a row': 'हर अनुपस्थिति पर, या सिर्फ़ लगातार 2 दिन अनुपस्थित रहने पर',

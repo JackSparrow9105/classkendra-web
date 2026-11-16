@@ -1,0 +1,112 @@
+<div class="page">
+  <header class="page-head no-print">
+    <div class="row">
+      <a [routerLink]="isNew() ? '/students' : ['/students', id()]" class="icon-btn" aria-label="Back"><app-icon name="chevron-left" /></a>
+      <h1 class="page-title">{{ isNew() ? 'Admission' : 'Admission slip' }}</h1>
+    </div>
+  </header>
+
+  @if (data(); as d) {
+    @if (isNew()) {
+      <section class="done no-print" role="status">
+        <span class="done-icon" aria-hidden="true"><app-icon name="check" [size]="28" [stroke]="2.6" /></span>
+        <h2>Admission confirmed</h2>
+        <p class="muted">{{ d.student.name }} · {{ d.batchName }}</p>
+        @if (d.student.admissionNo) {
+          <strong class="adm-no">{{ d.student.admissionNo }}</strong>
+        }
+        @if (messageSent()) {
+          <span class="badge ok"><app-icon name="whatsapp" [size]="14" /> Confirmation sent to parent on WhatsApp</span>
+        } @else {
+          <span class="badge">WhatsApp confirmation not sent</span>
+        }
+      </section>
+    }
+
+    @if (isNew()) {
+      <ng-container *ngTemplateOutlet="actions" />
+    }
+
+    <ng-template #actions>
+    <div class="stack no-print">
+        @if (totalDue() > 0) {
+          <a class="btn btn-primary lg block" [routerLink]="['/students', id()]" [queryParams]="{ pay: 1 }">
+            <app-icon name="plus" [size]="18" /> Collect fee now · {{ rupees(totalDue()) }}
+          </a>
+        }
+        <a class="btn btn-outline lg block" [href]="whatsappUrl()" target="_blank" rel="noopener">
+          <app-icon name="whatsapp" [size]="18" /> Share slip on WhatsApp
+        </a>
+        <button type="button" class="btn btn-outline lg block" (click)="print()">
+          <app-icon name="file" [size]="18" /> Print or save as PDF
+        </button>
+        @if (d.student.admissionNo && !messageSent()) {
+          <button type="button" class="btn btn-ghost block" [disabled]="resending()" (click)="resend()">
+            {{ resending() ? 'Sending…' : 'Send WhatsApp confirmation' }}
+          </button>
+        } @else if (d.student.admissionNo && !isNew()) {
+          <button type="button" class="btn btn-ghost block" [disabled]="resending()" (click)="resend()">
+            {{ resending() ? 'Sending…' : 'Send confirmation again' }}
+          </button>
+        }
+        @if (isNew()) {
+          <a class="btn btn-ghost block" routerLink="/students/new"><app-icon name="user-plus" [size]="18" /> Add another student</a>
+        }
+      </div>
+    </ng-template>
+
+    <!-- The admission slip: printed or saved as PDF, or shared as text on WhatsApp. -->
+    <article class="receipt" aria-label="Admission slip">
+      <header class="r-head">
+        <div class="r-org">
+          @if (logo(); as src) {
+            <img class="r-logo" [src]="src" alt="" (error)="logoFailed.set(true)">
+          }
+          @if (centre.centre(); as c) {
+            <div class="r-org-text">
+              <strong class="org">{{ c.name }}</strong>
+              @if (c.address) { <span class="muted r-address">{{ c.address }}</span> }
+              @else if (c.city) { <span class="muted">{{ c.city }}</span> }
+              @if (c.phone) { <span class="muted">Phone: {{ c.phone }}</span> }
+            </div>
+          }
+        </div>
+        <div class="r-no">
+          <span class="muted">Admission slip</span>
+          <strong>{{ d.student.admissionNo ?? '—' }}</strong>
+        </div>
+      </header>
+
+      <dl class="r-meta">
+        <div><dt>Admission date</dt><dd>{{ longDate(d.student.joinedOn) }}</dd></div>
+        <div><dt>Student</dt><dd>{{ d.student.name }}</dd></div>
+        <div><dt>{{ group() }}</dt><dd>{{ d.batchName }}</dd></div>
+        @if (d.student.parentName) {
+          <div><dt>Parent</dt><dd>{{ d.student.parentName }}</dd></div>
+        }
+        <div><dt>Parent's mobile</dt><dd>+91 {{ d.student.parentPhone }}</dd></div>
+      </dl>
+
+      @if (dueNow().length) {
+        <table class="r-table">
+          <thead><tr><th scope="col">Fee</th><th scope="col">Due</th><th scope="col" class="num">Amount</th></tr></thead>
+          <tbody>
+            @for (x of dueNow(); track x.id) {
+              <tr><td>{{ x.headName }} · {{ x.periodLabel }}</td><td>{{ x.dueDate <= today ? 'Now' : niceDate(x.dueDate) }}</td><td class="num">{{ rupees(x.balance) }}</td></tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr><th scope="row" colspan="2">To pay now</th><td class="num total">{{ rupees(totalDue()) }}</td></tr>
+          </tfoot>
+        </table>
+      } @else {
+        <p class="muted">No fees due right now.</p>
+      }
+      <p class="r-note muted">Welcome! Fee reminders and receipts come to the parent's WhatsApp.</p>
+    </article>
+
+    @if (!isNew()) {
+      <ng-container *ngTemplateOutlet="actions" />
+    }
+  }
+</div>

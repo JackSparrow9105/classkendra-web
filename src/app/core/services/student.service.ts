@@ -7,7 +7,10 @@ import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
 /** Concessions are managed through their own endpoints, so they're not part of the student form. */
-export type StudentInput = Omit<Student, 'id' | 'active' | 'concessions'>;
+export type StudentInput = Omit<Student, 'id' | 'active' | 'concessions' | 'admissionNo' | 'admissionMessageSent'> & {
+  /** POST only: false = no WhatsApp admission confirmation for this student. */
+  sendConfirmation?: boolean;
+};
 
 export interface ImportResult {
   added: number;
@@ -50,10 +53,47 @@ export class StudentService {
       (s) => s.active && s.parentPhone === input.parentPhone && s.name.toLowerCase() === input.name.toLowerCase(),
     );
     if (dup) return this.mock.fail(`${input.name} is already added with this number.`);
-    const student: Student = { id: this.mock.id('stu'), ...input, active: true, concessions: [] };
+    // Demo: admission number per session, like the API ("A-2026-0045").
+    const year = new Date(input.joinedOn || Date.now()).getFullYear();
+    const used = this.mock.snapshot.students
+      .map((x) => x.admissionNo ?? '')
+      .filter((no) => no.startsWith(`A-${year}-`))
+      .map((no) => Number(no.slice(7)) || 0);
+    const admissionNo = `A-${year}-${String(Math.max(40, ...used) + 1).padStart(4, '0')}`;
+    const student: Student = { id: this.mock.id('stu'), ...input, active: true, concessions: [], admissionNo };
     this.mock.update((s) => s.students.push(student));
     this.mock.ensureDues();
-    return this.mock.respond(student);
+    const sent = this.mock.snapshot.centre?.sendAdmissionMessages !== false && input.sendConfirmation !== false;
+    if (sent) this.logAdmission(student);
+    return this.mock.respond({ ...student, admissionMessageSent: sent });
+  }
+
+  /** POST /students/{id}/admission-message — send the WhatsApp admission confirmation again. */
+  resendAdmission(id: string): Observable<{ sent: boolean }> {
+    if (!environment.useMock) return this.api.post<{ sent: boolean }>(`students/${id}/admission-message`, {});
+    const st = this.mock.snapshot.students.find((x) => x.id === id);
+    if (!st?.admissionNo) return this.mock.fail('This student has no admission number.');
+    this.logAdmission(st);
+    return this.mock.respond({ sent: true });
+  }
+
+  /** Demo only: the admission message, as the API words it. */
+  private logAdmission(st: Student): void {
+    const s = this.mock.snapshot;
+    const batch = s.batches.find((b) => b.id === st.batchId)?.name ?? '';
+    const dues = s.dues.filter((d) => d.studentId === st.id && d.status !== 'Paid');
+    const amount = dues.reduce((sum, d) => sum + d.amount - d.paidAmount, 0);
+    const first = dues.map((d) => d.dueDate).sort()[0];
+    const today = new Date().toISOString().slice(0, 10);
+    const by = first && first > today ? ` by ${first.slice(8, 10)}/${first.slice(5, 7)}` : '';
+    const fees = amount > 0 ? `Fees due${by ? '' : ' now'}: ₹${amount.toLocaleString('en-IN')}${by}.` : 'Welcome aboard!';
+    this.mock.update(() => this.mock.logMessage({
+      studentId: st.id,
+      recipientName: st.parentName || `${st.name}'s parent`,
+      phone: st.parentPhone,
+      type: 'Admission',
+      text: `Welcome to ${s.centre?.name ?? ''}! ${st.name}'s admission in ${batch} is confirmed. Admission no. ${st.admissionNo}. ${fees}`,
+    }));
   }
 
   /** PUT /students/{id} */

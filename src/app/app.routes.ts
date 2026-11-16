@@ -30,6 +30,7 @@ export const routes: Routes = [
       { path: 'students/new', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-form').then((m) => m.StudentForm) },
       { path: 'students/import', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-import').then((m) => m.StudentImport) },
       { path: 'students/:id', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-detail').then((m) => m.StudentDetail) },
+      { path: 'students/:id/admission', canActivate: [officeGuard], loadComponent: () => import('./features/students/admission').then((m) => m.Admission) },
       { path: 'students/:id/edit', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-form').then((m) => m.StudentForm) },
       { path: 'receipts/:id', canActivate: [officeGuard], loadComponent: () => import('./features/receipts/receipt').then((m) => m.Receipt) },
       { path: 'reports', canActivate: [officeGuard], loadComponent: () => import('./features/reports/reports').then((m) => m.Reports) },

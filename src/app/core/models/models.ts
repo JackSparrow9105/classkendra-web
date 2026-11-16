@@ -63,6 +63,8 @@ export interface Centre {
   sendReceipts?: boolean;
   /** Absent alerts: every absence, only after 2 classes in a row, or off (default 'Every'). */
   absentAlerts?: AbsentAlertMode;
+  /** WhatsApp admission confirmation to the parent when a student is added (default on). */
+  sendAdmissionMessages?: boolean;
 }
 
 export type AbsentAlertMode = 'Every' | 'TwoDays' | 'Off';
@@ -95,6 +97,10 @@ export interface Student {
   optionalHeadIds: string[];
   /** Discounts this student gets. In SQL this is its own StudentConcessions table. */
   concessions: Concession[];
+  /** "A-2026-0045", given when the student is added. Missing for students added before admissions. */
+  admissionNo?: string | null;
+  /** Only in the reply to POST /students: was the WhatsApp admission confirmation sent? */
+  admissionMessageSent?: boolean | null;
 }
 
 export type ConcessionReason = 'Sibling' | 'Staff child' | 'Scholarship' | 'Other';
@@ -385,7 +391,7 @@ export interface PromotionResult {
 
 /* ---------- WhatsApp message log ---------- */
 
-export type MessageType = 'FeeReminder' | 'AbsentAlert' | 'Receipt' | 'StaffInvite';
+export type MessageType = 'FeeReminder' | 'AbsentAlert' | 'Receipt' | 'StaffInvite' | 'Admission';
 export type MessageStatus = 'Queued' | 'Sent' | 'Delivered' | 'Read' | 'Failed';
 
 /** One row per WhatsApp message (the Notifications outbox). Status comes from the provider's delivery webhook. */

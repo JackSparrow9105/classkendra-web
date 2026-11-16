@@ -70,12 +70,13 @@ export class CentreService {
     return call$.pipe(tap((c) => this.centre.set(c)));
   }
 
-  /** PUT /centre/message-settings { sendReceipts, absentAlerts } — which WhatsApp messages parents get. */
-  setMessageSettings(sendReceipts: boolean, absentAlerts: AbsentAlertMode): Observable<Centre> {
+  /** PUT /centre/message-settings { sendReceipts, absentAlerts, sendAdmissionMessages } — which WhatsApp messages parents get. */
+  setMessageSettings(sendReceipts: boolean, absentAlerts: AbsentAlertMode, sendAdmissionMessages?: boolean): Observable<Centre> {
+    const admission = sendAdmissionMessages ?? this.centre()?.sendAdmissionMessages ?? true;
+    const body = { sendReceipts, absentAlerts, sendAdmissionMessages: admission };
     const call$ = environment.useMock
-      ? (this.mock.update((s) => s.centre && Object.assign(s.centre, { sendReceipts, absentAlerts })),
-        this.mock.respond(this.mock.snapshot.centre!))
-      : this.api.put<Centre>('centre/message-settings', { sendReceipts, absentAlerts });
+      ? (this.mock.update((s) => s.centre && Object.assign(s.centre, body)), this.mock.respond(this.mock.snapshot.centre!))
+      : this.api.put<Centre>('centre/message-settings', body);
     return call$.pipe(tap((c) => this.centre.set(c)));
   }
 

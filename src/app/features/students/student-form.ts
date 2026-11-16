@@ -123,15 +123,19 @@ export class StudentForm {
         this.busy.set(false);
         if (addAnother) {
           this.addedCount.update((n) => n + 1);
-          this.toast.show(`${s.name} added`);
+          this.toast.show(s.admissionNo ? `${s.name} added · ${s.admissionNo}` : `${s.name} added`);
           this.submitted.set(false);
           // Keep batch and date: the next student is usually from the same batch.
           this.form.reset({ ...this.form.getRawValue(), name: '', parentName: '', parentPhone: '' });
           this.optedIn.set([]);
           document.getElementById('s-name')?.focus();
         } else {
-          this.toast.show(id ? 'Changes saved' : `${s.name} added`);
-          this.router.navigateByUrl(id ? `/students/${id}` : '/students');
+          if (id) {
+            this.toast.show('Changes saved');
+            this.router.navigateByUrl(`/students/${id}`);
+          } else {
+            this.router.navigate(['/students', s.id, 'admission'], { queryParams: { new: 1, sent: s.admissionMessageSent ? 1 : 0 } });
+          }
         }
       },
       error: (e) => {

@@ -112,6 +112,16 @@ export class Settings {
     });
   }
 
+  /** WhatsApp admission confirmation when a student is added. */
+  protected setAdmissionMessages(on: boolean): void {
+    const c = this.centre.centre();
+    if (!c) return;
+    this.centre.setMessageSettings(c.sendReceipts ?? true, c.absentAlerts ?? 'Every', on).subscribe({
+      next: () => this.toast.show(on ? 'Parents will get a WhatsApp admission confirmation' : 'Admission confirmations turned off'),
+      error: (e) => this.toast.show(errorMessage(e)),
+    });
+  }
+
   /** Absent alerts: every absence, only after 2 classes in a row, or off. */
   protected setAbsentAlerts(mode: AbsentAlertMode): void {
     const c = this.centre.centre();

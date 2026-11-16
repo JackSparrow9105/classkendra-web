@@ -25,6 +25,7 @@ export class Messages {
     { id: 'FeeReminder', label: 'Fee reminders' },
     { id: 'AbsentAlert', label: 'Absent alerts' },
     { id: 'Receipt', label: 'Receipts' },
+    { id: 'Admission', label: 'Admissions' },
     { id: 'StaffInvite', label: 'Staff invites' },
   ];
   protected readonly statuses: MessageStatus[] = ['Queued', 'Sent', 'Delivered', 'Read', 'Failed'];
@@ -33,6 +34,7 @@ export class Messages {
     AbsentAlert: 'calendar-check',
     Receipt: 'file',
     StaffInvite: 'user-plus',
+    Admission: 'cap',
   };
 
   protected readonly type = signal<MessageType | ''>('');

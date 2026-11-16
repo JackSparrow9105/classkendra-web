@@ -75,6 +75,17 @@
         </div>
       </div>
 
+      <div class="pref-row">
+        <span class="pref-label">
+          {{ 'Admission confirmations' | t }}
+          <span class="muted pref-sub">{{ 'Admission number and fees due, when you add a student' | t }}</span>
+        </span>
+        <div class="seg compact" role="radiogroup" [attr.aria-label]="'Admission confirmations' | t">
+          <button type="button" role="radio" [class.on]="c.sendAdmissionMessages !== false" [attr.aria-checked]="c.sendAdmissionMessages !== false" (click)="setAdmissionMessages(true)">{{ 'On' | t }}</button>
+          <button type="button" role="radio" [class.on]="c.sendAdmissionMessages === false" [attr.aria-checked]="c.sendAdmissionMessages === false" (click)="setAdmissionMessages(false)">{{ 'Off' | t }}</button>
+        </div>
+      </div>
+
       <div class="pref-row pref-row--stacked">
         <span class="pref-label">
           {{ 'Absent alerts' | t }}

@@ -13,6 +13,9 @@
       <div class="profile-text">
         <strong>{{ d.batchName }}</strong>
         <span>{{ d.student.parentName || 'Parent' }} · +91 {{ formatPhone(d.student.parentPhone) }}</span>
+        @if (d.student.admissionNo) {
+          <a class="adm-link" [routerLink]="['/students', id(), 'admission']">Admission no. {{ d.student.admissionNo }} · Slip</a>
+        }
       </div>
       <a class="icon-btn" [href]="'tel:+91' + d.student.parentPhone" aria-label="Call parent"><app-icon name="phone" [size]="18" /></a>
     </section>

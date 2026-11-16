@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Concession, ConcessionReason, FeeDueView, FeeHead, StudentFeeHistory } from '../../core/models/models';
@@ -27,6 +27,8 @@ export class StudentDetail {
 
   /** Route param */
   readonly id = input.required<string>();
+  /** ?pay=1 opens the payment sheet (from the admission screen). */
+  readonly pay = input<string>();
 
   protected readonly data = signal<StudentFeeHistory | null>(null);
   protected readonly heads = signal<FeeHead[]>([]);
@@ -50,6 +52,9 @@ export class StudentDetail {
   protected readonly openDues = computed(() => this.data()?.dues.filter((d) => d.status !== 'Paid') ?? []);
 
   constructor() {
+    effect(() => {
+      if (this.pay() === '1' && this.data()) untracked(() => this.paying.set(true));
+    });
     this.fees.getSetup().subscribe((s) => this.heads.set(s.heads));
     effect(() => this.load(this.id()));
   }
