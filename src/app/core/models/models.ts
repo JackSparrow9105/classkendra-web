@@ -106,6 +106,134 @@ export interface Student {
   isNewAdmission?: boolean;
   /** Only in the reply to POST /students: was the WhatsApp admission confirmation sent? */
   admissionMessageSent?: boolean | null;
+  /** Students who left (active = false): their last day, why, and whether fee reminders continue for what they owe. */
+  leftOn?: string | null;
+  leftReason?: LeftReason | null;
+  leftNote?: string | null;
+  remindAfterLeaving?: boolean;
+}
+
+export type LeftReason = 'Left' | 'Transferred' | 'PassedOut' | 'Removed';
+
+/** One page of a long list. `total` = rows matching the filters, the same on every page. */
+export interface Paged<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** GET /students/page. newCount = new admissions this session among all matching students. */
+export interface StudentPage extends Paged<Student> {
+  newCount: number;
+}
+
+/** POST /students/{id}/leave */
+export interface StudentLeaveRequest {
+  /** Last day (yyyy-MM-dd). Not in the future. */
+  leftOn: string;
+  reason: LeftReason;
+  note?: string;
+  /** Keep = fees already raised are still owed. Waive = write off everything unpaid (needs waiveReason). */
+  dues: 'Keep' | 'Waive';
+  waiveReason?: string;
+  /** With dues = Keep: keep sending WhatsApp fee reminders for what is still owed. */
+  keepReminding?: boolean;
+}
+
+export interface StudentLeaveResult {
+  student: Student;
+  /** Bills for months after the leaving month, removed because they were never owed. */
+  billsCancelled: number;
+  stillOwed: number;
+  waived: number;
+}
+
+/** GET /fees/page. The three totals cover every student matching the filters, not only this page. */
+export interface FeesPage extends Paged<StudentFees> {
+  pendingTotal: number;
+  pendingCount: number;
+  paidTotal: number;
+}
+
+/** A holiday for the whole centre (Settings › Holidays). */
+export interface Holiday {
+  id: string;
+  name: string;
+  from: string;
+  to: string;
+  days: number;
+}
+
+export type ActivityAction =
+  | 'PaymentCancelled' | 'StudentLeft' | 'StudentRejoined' | 'FeesWaived'
+  | 'HolidayAdded' | 'HolidayRemoved' | 'CheckInRadiusChanged'
+  | 'Refunded' | 'ChargeAdded' | 'OpeningBalanceSet' | 'FeeSettingsChanged' | 'BatchChanged'
+  | 'DataExported' | 'PromotionUndone' | 'PaymentRestored';
+
+/** A promotion run (GET /students/promotions). canUndo: within 7 days and not undone yet. */
+export interface PromotionRunView {
+  id: string;
+  createdAt: string;
+  runBy: string;
+  moved: number;
+  left: number;
+  keptBack: number;
+  undoneAt: string | null;
+  undoneBy: string | null;
+  canUndo: boolean;
+  /** Last day it can be undone (yyyy-MM-dd). */
+  undoEndsOn: string | null;
+}
+
+export interface UndoPromotionResult {
+  restored: number;
+  /** Students left as they were, with why. */
+  skipped: { studentId: string; name: string; reason: string }[];
+  billsRemoved: number;
+}
+
+/** Student profile › Attendance (GET /students/{id}/attendance?month=). */
+export interface StudentAttendance {
+  /** First day counted this session (joined, moved to this class, or session start). */
+  since: string;
+  present: number;
+  absent: number;
+  /** null when no register has been marked yet. */
+  percent: number | null;
+  month: string;
+  /** Every register of that month: Present or Absent. */
+  days: { date: string; status: 'Present' | 'Absent' }[];
+  /** Last 10 days absent this session, newest first. */
+  recentAbsences: string[];
+}
+
+/** A fee that will be raised later this session (GET /students/{id}/fees/upcoming). */
+export interface UpcomingFee {
+  headName: string;
+  periodLabel: string;
+  month: string;
+  dueDate: string;
+  grossAmount: number;
+  discount: number;
+  amount: number;
+}
+
+/** Excel downloads (GET /exports/{kind}). */
+export type ExportKind = 'students' | 'fees' | 'receipts' | 'refunds' | 'daybook';
+
+/** One line in the activity log (GET /activity, owner only). */
+export interface ActivityEntry {
+  id: string;
+  /** UTC ISO time. */
+  at: string;
+  userName: string;
+  userRole: string;
+  action: ActivityAction;
+  entityType: 'Payment' | 'Student' | 'Holiday' | 'Settings';
+  entityId: string | null;
+  summary: string;
+  reason: string | null;
 }
 
 export type ConcessionReason = 'Sibling' | 'Staff child' | 'Scholarship' | 'Other';
@@ -154,10 +282,30 @@ export interface FeeSettings {
   remindBefore: boolean;
   remindOnDue: boolean;
   remindAfter: boolean;
+  /** Late fee: None, Once (a fixed fine) or PerDay. */
+  lateFeeType?: LateFeeType;
+  /** ₹ once, or ₹ per day. */
+  lateFeeAmount?: number;
+  /** Days after the due date before it starts (0 = from the day after). */
+  lateFeeAfterDays?: number;
+  /** PerDay only: the most per fee. 0 = no limit. */
+  lateFeeMax?: number;
+  /** Discount for the 2nd and later child of a family (same parent phone). */
+  siblingDiscountType?: SiblingDiscountType;
+  siblingDiscountValue?: number;
+  /** null = every fee; otherwise only this fee. */
+  siblingDiscountHeadId?: string | null;
 }
 
+export type LateFeeType = 'None' | 'Once' | 'PerDay';
+export type SiblingDiscountType = 'None' | 'Percent' | 'Amount';
+
+/** Bills ClassKendra makes itself: previous dues, late fees, extra charges. null = one of the centre's fees. */
+export type BillKind = 'OpeningBalance' | 'LateFee' | 'Charge';
+
 export type FeeStatus = 'Pending' | 'Partial' | 'Paid';
-export type PaymentMode = 'Cash' | 'UPI' | 'Cheque' | 'Online';
+/** 'Opening' = advance paid before ClassKendra (opening balance); never counted as collection. */
+export type PaymentMode = 'Cash' | 'UPI' | 'Cheque' | 'Online' | 'Opening';
 
 /** One bill line: a fee head for a period. Money received is tracked in Payments, not here. */
 export interface FeeDue {
@@ -192,6 +340,8 @@ export interface FeeDueView extends FeeDue {
   daysLate: number;
   /** amount - paidAmount */
   balance: number;
+  /** Previous dues, late fee or an extra charge; missing for the centre's own fees. */
+  kind?: BillKind | null;
 }
 
 /** Money received once, with one receipt. It can cover several dues, fully or in part. */
@@ -216,6 +366,14 @@ export interface PaymentView extends Payment {
   balanceAfter: number;
   /** Everything printed on the receipt, frozen when the payment was recorded (missing in demo mode). */
   receipt?: ReceiptSnapshot;
+  /** true = cancelled: it counts for nothing, and its money is back on the bills. The receipt number is never reused. */
+  cancelled?: boolean;
+  /** UTC ISO time. */
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
+  cancelReason?: string | null;
+  /** Other receipts paid at the same time (brothers and sisters paid together). */
+  together?: { id: string; receiptNo: string; studentName: string; amount: number }[] | null;
 }
 
 /**
@@ -258,6 +416,69 @@ export interface StudentFeeHistory {
   paidThisSession: number;
   /** Public payment page for this family (the same link the WhatsApp reminder carries). */
   payLink: string;
+  /** Money paid that isn't on any fee yet; used on the next fees automatically, or refunded. */
+  advance?: number;
+  refunds?: Refund[];
+  /** Previous dues / advance from before ClassKendra. */
+  opening?: OpeningBalance | null;
+  /** Parts of fees waived and extra charges, newest first. */
+  adjustments?: FeeAdjustment[];
+  /** Brothers and sisters (same parent phone) still studying here or still owing. */
+  siblingCount?: number;
+}
+
+export type RefundMode = 'Cash' | 'UPI' | 'Cheque' | 'Bank';
+
+/** Money given back to a parent, out of the student's advance. */
+export interface Refund {
+  id: string;
+  /** "RF-2026-0001" */
+  refundNo: string;
+  amount: number;
+  mode: RefundMode;
+  refundedOn: string;
+  reason: string;
+  by: string;
+  createdAt: string;
+}
+
+export interface FeeAdjustment {
+  id: string;
+  dueId: string;
+  kind: 'Waive' | 'Charge';
+  amount: number;
+  reason: string;
+  by: string;
+  createdAt: string;
+}
+
+/** What a student owed, or had paid ahead, before the centre started using ClassKendra. */
+export interface OpeningBalance {
+  previousDues: number;
+  advancePaid: number;
+  asOn: string | null;
+  /** false once money was paid against the previous dues or the advance was used. */
+  editable: boolean;
+}
+
+/** A brother or sister (same parent phone) and what they owe. */
+export interface FamilyMember {
+  studentId: string;
+  name: string;
+  batchName: string;
+  active: boolean;
+  dues: FeeDueView[];
+  balance: number;
+  advance: number;
+}
+
+/** POST /payments/family — one amount for brothers and sisters, spread over all ticked fees oldest first. */
+export interface FamilyPaymentRequest {
+  items: { studentId: string; dueIds: string[] }[];
+  amount: number;
+  mode: PaymentMode;
+  paidOn: string;
+  note: string;
 }
 
 export interface CollectionReport {
@@ -269,6 +490,10 @@ export interface CollectionReport {
   byGroup: { batchId: string; name: string; collected: number; pending: number }[];
   byHead: { headName: string; collected: number }[];
   payments: PaymentView[];
+  /** Money given back to parents in the month. */
+  refunded?: number;
+  /** Parts of fees waived in the month (not concessions). */
+  waived?: number;
 }
 
 /** One row per student on the Fees screen (what GET /fees returns). */
@@ -299,6 +524,8 @@ export interface RecordPaymentRequest {
   mode: PaymentMode;
   paidOn: string;
   note: string;
+  /** true = money beyond the ticked fees goes on other unpaid fees, then is kept as advance. */
+  keepExtra?: boolean;
 }
 
 export interface StaffMember {
@@ -314,6 +541,8 @@ export interface AttendanceSheet {
   date: string;
   absentStudentIds: string[];
   saved: boolean;
+  /** Set when that day is a holiday: the register can still be saved, but no absent alerts go out. */
+  holidayName?: string | null;
 }
 
 export interface DashboardSummary {
@@ -391,6 +620,10 @@ export interface StudentImportRow {
   batchName: string;
   /** Optional: the student's number in the school register. */
   admissionNo?: string;
+  /** Optional: what the student owed before ClassKendra (₹). */
+  previousDues?: number;
+  /** Optional: what the parent had already paid ahead (₹). */
+  advancePaid?: number;
 }
 
 /* ---------- Promotion to the next class ---------- */
@@ -443,6 +676,8 @@ export interface ParentPayPage {
   dues: FeeDueView[];
   total: number;
   language: Lang;
+  /** Each child on the page (brothers and sisters with the same parent phone). Dues carry their studentId. */
+  children?: { studentId: string; name: string; batchName: string; balance: number }[];
 }
 
 /** POST /public/pay/{token}/order — the API creates a Razorpay order for the chosen dues. */

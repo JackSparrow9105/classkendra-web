@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { Batch, PromotionResult, Student } from '../../core/models/models';
+import { Batch, PromotionResult, Student, PromotionRunView, UndoPromotionResult } from '../../core/models/models';
 import { LabelService, SCHOOL_CLASSES, schoolGroupName } from '../../core/labels';
 import { BatchService } from '../../core/services/batch.service';
 import { StudentService } from '../../core/services/student.service';
@@ -41,6 +41,11 @@ export class Promote {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly result = signal<PromotionResult | null>(null);
+
+  /** Promotions of the last 60 days; one can be undone within 7 days. */
+  protected readonly runs = signal<PromotionRunView[]>([]);
+  protected readonly undoing = signal<string | null>(null);
+  protected readonly undoResult = signal<UndoPromotionResult | null>(null);
 
   protected readonly summary = computed(() => {
     let move = 0;
@@ -122,6 +127,7 @@ export class Promote {
         next: (res) => {
           this.busy.set(false);
           this.result.set(res);
+          this.loadRuns();   // so it can be undone straight away
         },
         error: (e) => {
           this.busy.set(false);
@@ -135,7 +141,35 @@ export class Promote {
     this.error.set('');
   }
 
+  protected when(iso: string): string {
+    return new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  }
+
+  protected undo(r: PromotionRunView): void {
+    const what = this.labels.isSchool() ? 'promotion' : 'move';
+    if (!confirm(`Undo this ${what}? Students go back to their old ${this.labels.l().groupLower}, students marked as leaving come back, and fees raised for the new ${this.labels.l().groupLower} are removed. Students paid for since then stay as they are.`)) return;
+    this.undoing.set(r.id);
+    this.studentService.undoPromotion(r.id).subscribe({
+      next: (res) => {
+        this.undoing.set(null);
+        this.undoResult.set(res);
+        this.result.set(null);
+        this.loadRuns();
+        this.load();
+      },
+      error: (e) => {
+        this.undoing.set(null);
+        this.error.set(errorMessage(e));
+      },
+    });
+  }
+
+  private loadRuns(): void {
+    this.studentService.promotions().subscribe({ next: (r) => this.runs.set(r), error: () => undefined });
+  }
+
   private load(): void {
+    if (!this.runs().length) this.loadRuns();
     forkJoin([this.batchService.list(), this.studentService.list()]).subscribe(([batches, students]) => {
       this.batches.set(batches);
       this.rows.set(

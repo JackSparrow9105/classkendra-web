@@ -3,7 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { Batch, FeeFrequency, FeeHead, FeeSettings } from '../../core/models/models';
+import { Batch, FeeFrequency, FeeHead, FeeSettings, LateFeeType, SiblingDiscountType } from '../../core/models/models';
 import { FREQUENCY_LABELS } from '../../core/fees/schedule';
 import { LabelService } from '../../core/labels';
 import { BatchService } from '../../core/services/batch.service';
@@ -153,6 +153,40 @@ export class FeeSetup {
   protected setSetting(key: 'dueDay' | 'sessionStartMonth', value: number): void {
     this.settings.update((s) => ({ ...s, [key]: Number(value) }));
   }
+
+  // ---------- late fee and sibling discount ----------
+  protected readonly lateTypes: { id: LateFeeType; label: string }[] = [
+    { id: 'None', label: 'None' },
+    { id: 'Once', label: 'Fixed fine' },
+    { id: 'PerDay', label: 'Per day' },
+  ];
+  protected readonly siblingTypes: { id: SiblingDiscountType; label: string }[] = [
+    { id: 'None', label: 'None' },
+    { id: 'Percent', label: '%' },
+    { id: 'Amount', label: '₹' },
+  ];
+  /** Saved fees the sibling discount can be limited to (a new fee can be chosen after saving). */
+  protected readonly savedHeads = computed(() => this.heads().filter((h) => h.id && !h.admission));
+
+  protected setLate(patch: Partial<FeeSettings>): void {
+    this.settings.update((s) => ({ ...s, ...patch }));
+  }
+
+  protected num(v: string): number {
+    return Number(String(v ?? '').replace(/\D/g, '').slice(0, 7)) || 0;
+  }
+
+  protected readonly lateExample = computed(() => {
+    const s = this.settings();
+    const after = s.lateFeeAfterDays ?? 0;
+    const start = after === 0 ? 'the day after the due date' : `${after} days after the due date`;
+    if (s.lateFeeType === 'Once' && (s.lateFeeAmount ?? 0) > 0) return `${rupees(s.lateFeeAmount!)} is added once, ${start}, to every fee still unpaid.`;
+    if (s.lateFeeType === 'PerDay' && (s.lateFeeAmount ?? 0) > 0) {
+      const max = (s.lateFeeMax ?? 0) > 0 ? `, up to ${rupees(s.lateFeeMax!)} per fee` : '';
+      return `${rupees(s.lateFeeAmount!)} a day is added from ${start}${max}, until the fee is paid.`;
+    }
+    return 'No late fee.';
+  });
 
   protected save(): void {
     const heads = this.heads()

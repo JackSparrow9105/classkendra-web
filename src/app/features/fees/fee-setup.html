@@ -100,6 +100,71 @@
     </div>
   </section>
 
+  <section class="stack">
+    <h2 class="label">Late fee</h2>
+    <div class="card stack" style="gap: 12px">
+      <div class="seg" role="radiogroup" aria-label="Late fee">
+        @for (t of lateTypes; track t.id) {
+          <button type="button" role="radio" [class.on]="(settings().lateFeeType ?? 'None') === t.id" [attr.aria-checked]="(settings().lateFeeType ?? 'None') === t.id"
+                  (click)="setLate({ lateFeeType: t.id })">{{ t.label }}</button>
+        }
+      </div>
+      @if ((settings().lateFeeType ?? 'None') !== 'None') {
+        <div class="grid-2">
+          <div class="field">
+            <label class="label" for="lf-amount">{{ settings().lateFeeType === 'PerDay' ? '₹ per day' : 'Fine' }}</label>
+            <div class="input-group"><span class="prefix">₹</span>
+              <input id="lf-amount" type="text" inputmode="numeric" placeholder="0" [ngModel]="settings().lateFeeAmount || ''" (ngModelChange)="setLate({ lateFeeAmount: num($event) })"></div>
+          </div>
+          <div class="field">
+            <label class="label" for="lf-after">Starts after</label>
+            <div class="input-group">
+              <input id="lf-after" type="text" inputmode="numeric" placeholder="0" [ngModel]="settings().lateFeeAfterDays ?? 0" (ngModelChange)="setLate({ lateFeeAfterDays: num($event) })">
+              <span class="prefix">days</span></div>
+          </div>
+        </div>
+        @if (settings().lateFeeType === 'PerDay') {
+          <div class="field">
+            <label class="label" for="lf-max">Most per fee <span class="muted" style="font-weight: 400">0 = no limit</span></label>
+            <div class="input-group"><span class="prefix">₹</span>
+              <input id="lf-max" type="text" inputmode="numeric" placeholder="0" [ngModel]="settings().lateFeeMax || ''" (ngModelChange)="setLate({ lateFeeMax: num($event) })"></div>
+          </div>
+        }
+      }
+      <span class="muted small-note">{{ lateExample() }} The office can waive a late fee on the student's page.</span>
+    </div>
+  </section>
+
+  <section class="stack">
+    <h2 class="label">Sibling discount</h2>
+    <div class="card stack" style="gap: 12px">
+      <span class="muted small-note">Brothers and sisters = students with the same parent phone. The child who joined first pays full fees; each other child gets this discount.</span>
+      <div class="seg" role="radiogroup" aria-label="Sibling discount">
+        @for (t of siblingTypes; track t.id) {
+          <button type="button" role="radio" [class.on]="(settings().siblingDiscountType ?? 'None') === t.id" [attr.aria-checked]="(settings().siblingDiscountType ?? 'None') === t.id"
+                  (click)="setLate({ siblingDiscountType: t.id })">{{ t.label }}</button>
+        }
+      </div>
+      @if ((settings().siblingDiscountType ?? 'None') !== 'None') {
+        <div class="grid-2">
+          <div class="field">
+            <label class="label" for="sb-value">Discount</label>
+            <div class="input-group"><span class="prefix">{{ settings().siblingDiscountType === 'Percent' ? '%' : '₹' }}</span>
+              <input id="sb-value" type="text" inputmode="numeric" placeholder="10" [ngModel]="settings().siblingDiscountValue || ''" (ngModelChange)="setLate({ siblingDiscountValue: num($event) })"></div>
+          </div>
+          <div class="field">
+            <label class="label" for="sb-head">On</label>
+            <select id="sb-head" class="input" [ngModel]="settings().siblingDiscountHeadId ?? ''" (ngModelChange)="setLate({ siblingDiscountHeadId: $event || null })">
+              <option value="">Every fee</option>
+              @for (h of savedHeads(); track h.key) { <option [value]="h.id">{{ h.name }} only</option> }
+            </select>
+          </div>
+        </div>
+        <span class="muted small-note">Applies to unpaid fees straight away. A student with their own "Sibling" discount keeps that one instead.</span>
+      }
+    </div>
+  </section>
+
   <section class="stack" style="gap: 6px">
     <span class="label muted">Parents will see</span>
     <div class="wa-bubble">{{ preview() }} <span class="wa-link">pay link</span></div>

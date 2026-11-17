@@ -127,3 +127,28 @@
   font-size: 24px;
   letter-spacing: -0.02em;
 }
+
+/* Brothers and sisters paying together */
+.family {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.family-child {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 14px;
+}
+.family-child .line {
+  border-radius: 0;
+}
+.sub-line {
+  padding-left: 28px;
+  border-top: 1px solid var(--divider);
+}
+.keep-extra {
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  margin-top: 4px;
+}

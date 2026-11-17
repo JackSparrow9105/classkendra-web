@@ -29,7 +29,9 @@ export const routes: Routes = [
       { path: 'students', loadComponent: () => import('./features/students/student-list').then((m) => m.StudentList) },
       { path: 'students/new', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-form').then((m) => m.StudentForm) },
       { path: 'students/import', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-import').then((m) => m.StudentImport) },
-      { path: 'students/:id', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-detail').then((m) => m.StudentDetail) },
+      // Teachers get a read-only profile (details and attendance, no fees) for students of their own classes.
+      { path: 'students/:id', loadComponent: () => import('./features/students/student-detail').then((m) => m.StudentDetail) },
+      { path: 'students/:id/slip/:kind', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-slip').then((m) => m.StudentSlip) },
       { path: 'students/:id/admission', canActivate: [officeGuard], loadComponent: () => import('./features/students/admission').then((m) => m.Admission) },
       { path: 'students/:id/edit', canActivate: [officeGuard], loadComponent: () => import('./features/students/student-form').then((m) => m.StudentForm) },
       { path: 'receipts/:id', canActivate: [officeGuard], loadComponent: () => import('./features/receipts/receipt').then((m) => m.Receipt) },
@@ -48,6 +50,10 @@ export const routes: Routes = [
       { path: 'staff-attendance/leaves', canActivate: [ownerGuard], loadComponent: () => import('./features/staff-attendance/staff-leaves').then((m) => m.StaffLeaves) },
       { path: 'staff-attendance/report', canActivate: [ownerGuard], loadComponent: () => import('./features/staff-attendance/staff-report').then((m) => m.StaffReportPage) },
       { path: 'staff-attendance/settings', canActivate: [ownerGuard], loadComponent: () => import('./features/staff-attendance/staff-settings').then((m) => m.StaffSettings) },
+      // One holiday list for the whole centre (owner edits, office sees) and the owner's activity log
+      { path: 'holidays', canActivate: [officeGuard], loadComponent: () => import('./features/holidays/holidays').then((m) => m.Holidays) },
+      { path: 'downloads', canActivate: [officeGuard], loadComponent: () => import('./features/downloads/downloads').then((m) => m.Downloads) },
+      { path: 'activity', canActivate: [ownerGuard], loadComponent: () => import('./features/activity/activity').then((m) => m.Activity) },
       { path: 'settings', loadComponent: () => import('./features/settings/settings').then((m) => m.Settings) },
     ],
   },

@@ -2,127 +2,517 @@
   <header class="page-head">
     <div class="row" style="min-width: 0">
       <a routerLink="/students" class="icon-btn" aria-label="Back to students"><app-icon name="chevron-left" /></a>
-      <h1 class="page-title ellipsis">{{ data()?.student?.name }}</h1>
+      <h1 class="page-title ellipsis">{{ student()?.name }}</h1>
     </div>
-    <a [routerLink]="['/students', id(), 'edit']" class="btn btn-outline sm"><app-icon name="edit" [size]="16" /> Edit</a>
+    @if (!isTeacher() && student()?.active) {
+      <a [routerLink]="['/students', id(), 'edit']" class="btn btn-outline sm"><app-icon name="edit" [size]="16" /> Edit</a>
+    }
   </header>
 
-  @if (data(); as d) {
+  @if (student(); as st) {
     <section class="profile">
-      <span class="avatar accent lg">{{ initials(d.student.name) }}</span>
+      <span class="avatar accent lg">{{ initials(st.name) }}</span>
       <div class="profile-text">
-        <strong>{{ d.batchName }}</strong>
-        <span>{{ d.student.parentName || 'Parent' }} · +91 {{ formatPhone(d.student.parentPhone) }}</span>
-        @if (d.student.admissionNo) {
-          <a class="adm-link" [routerLink]="['/students', id(), 'admission']">Admission no. {{ d.student.admissionNo }} · Slip</a>
-        }
+        <strong>{{ batchName() }}@if (st.admissionNo) { · {{ st.admissionNo }} }</strong>
+        <span>{{ st.parentName || 'Parent' }} · +91 {{ formatPhone(st.parentPhone) }}</span>
       </div>
-      <a class="icon-btn" [href]="'tel:+91' + d.student.parentPhone" aria-label="Call parent"><app-icon name="phone" [size]="18" /></a>
+      <a class="icon-btn" [href]="'https://wa.me/91' + st.parentPhone" target="_blank" rel="noopener" aria-label="WhatsApp parent"><app-icon name="whatsapp" [size]="18" /></a>
+      <a class="icon-btn" [href]="'tel:+91' + st.parentPhone" aria-label="Call parent"><app-icon name="phone" [size]="18" /></a>
     </section>
 
-    <div class="grid-2">
-      <div class="card stat">
-        <span class="stat-label">Balance due</span>
-        <span class="stat-value" [class.warn-text]="d.balance > 0">{{ rupees(d.balance) }}</span>
-        <span class="stat-note">{{ openDues().length }} unpaid {{ openDues().length === 1 ? 'fee' : 'fees' }}</span>
-      </div>
-      <div class="card stat">
-        <span class="stat-label">Paid this session</span>
-        <span class="stat-value">{{ rupees(d.paidThisSession) }}</span>
-        <span class="stat-note">{{ d.payments.length }} {{ d.payments.length === 1 ? 'receipt' : 'receipts' }}</span>
-      </div>
+    <div class="seg tabs" role="tablist" aria-label="Student">
+      @for (t of tabs(); track t.id) {
+        <button type="button" role="tab" [class.on]="tab() === t.id" [attr.aria-selected]="tab() === t.id" (click)="setTab(t.id)">{{ t.label | t }}</button>
+      }
     </div>
 
-    @if (d.balance > 0) {
-      <div class="row actions">
-        <button type="button" class="btn btn-primary lg" (click)="paying.set(true)">Record payment</button>
-        <button type="button" class="btn btn-outline lg" (click)="remind()" aria-label="Send WhatsApp reminder">
-          <app-icon name="whatsapp" [size]="18" /> Remind
-        </button>
-      </div>
-    }
+    @switch (tab()) {
+      @case ('overview') {
+        <section class="card details">
+          <dl>
+            <div><dt>{{ labels.l().group }}</dt><dd>{{ batchName() }}</dd></div>
+            <div><dt>Admission no.</dt><dd>{{ st.admissionNo || '—' }}</dd></div>
+            <div><dt>{{ st.isNewAdmission ? 'Admission date' : 'Studying here since' }}</dt><dd>{{ longDate(st.joinedOn) }}</dd></div>
+            <div><dt>Admission</dt><dd>{{ st.isNewAdmission ? 'New admission' : 'Existing student' }}</dd></div>
+            <div><dt>Parent</dt><dd>{{ st.parentName || '—' }}</dd></div>
+            <div><dt>Parent phone</dt><dd>+91 {{ formatPhone(st.parentPhone) }}</dd></div>
+            @if (!isTeacher()) {
+              <div><dt>Opted-in fees</dt><dd>{{ optedInNames() || 'None' }}</dd></div>
+              @if ((data()?.siblingCount ?? 0) > 0) {
+                <div><dt>Brothers / sisters</dt><dd>{{ data()!.siblingCount }} (same parent phone)</dd></div>
+              }
+            }
+            @if (!st.active) {
+              <div><dt>Left on</dt><dd>{{ st.leftOn ? longDate(st.leftOn) : '—' }} · {{ leftReasonLabel(st.leftReason) }}</dd></div>
+            }
+          </dl>
+        </section>
 
-    <section class="card link-card">
-      <div class="link-text">
-        <strong>Parent payment link</strong>
-        <span class="muted">Parents open this from the WhatsApp reminder and pay by UPI. No app needed.</span>
-      </div>
-      <div class="row" style="gap: 8px">
-        <button type="button" class="btn btn-outline sm" (click)="copyLink(d.payLink)">Copy link</button>
-        <a class="btn btn-outline sm" [href]="d.payLink" target="_blank" rel="noopener">Open</a>
-        <a class="btn btn-ghost sm" routerLink="/messages" [queryParams]="{ studentId: d.student.id }">Messages</a>
-      </div>
-    </section>
+        @if (attendance(); as a) {
+          <button type="button" class="card att-mini" (click)="setTab('attendance')">
+            <span class="stat-label">Attendance this session</span>
+            <span class="stat-value">{{ a.percent === null ? '—' : a.percent + '%' }}</span>
+            <span class="stat-note">{{ a.present }} present · {{ a.absent }} absent</span>
+          </button>
+        }
 
-    <section class="stack">
-      <div class="section-title">
-        <h2 class="h2">Discounts</h2>
-        <button type="button" class="btn btn-ghost sm" (click)="openDiscount()"><app-icon name="plus" [size]="16" [stroke]="2" /> Add</button>
-      </div>
-      @if (d.student.concessions.length === 0) {
-        <p class="muted empty-line">No discounts. Add one for siblings, staff children or scholarships.</p>
-      } @else {
-        <div class="card card--list">
-          @for (c of d.student.concessions; track c.id) {
-            <div class="list-row">
-              <span class="avatar ok"><app-icon name="check" [size]="16" [stroke]="2.2" /></span>
-              <div class="list-main">
-                <span class="list-title">{{ c.reason }} · {{ describe(c) }}</span>
-                @if (c.note) { <span class="list-sub">{{ c.note }}</span> }
-              </div>
-              <button type="button" class="icon-btn plain" [attr.aria-label]="'Remove discount ' + describe(c)" (click)="removeDiscount(c)">
-                <app-icon name="trash" [size]="18" />
+        @if (data(); as d) {
+        @if (!d.student.active) {
+          <section class="card stack" style="gap: 8px">
+            <div class="row" style="justify-content: space-between; gap: 8px">
+              <strong>{{ leftReasonLabel(d.student.leftReason) }}@if (d.student.leftOn) { on {{ niceDate(d.student.leftOn) }} }</strong>
+              <span class="badge warn">Not studying here</span>
+            </div>
+            @if (d.student.leftNote) { <span class="muted">{{ d.student.leftNote }}</span> }
+            <span class="muted" style="font-size: 13px">
+              @if (d.balance > 0) {
+                {{ rupees(d.balance) }} is still owed.
+                {{ d.student.remindAfterLeaving ? 'Fee reminders are still going to the parent.' : 'No fee reminders are being sent.' }}
+              } @else {
+                Nothing is owed. Their fees and receipts are kept below.
+              }
+            </span>
+            <button type="button" class="btn btn-outline" style="align-self: flex-start" [disabled]="busy()" (click)="rejoin()">
+              <app-icon name="user-plus" [size]="16" /> Rejoin
+            </button>
+          </section>
+        }
+
+        <div class="grid-2">
+          <div class="card stat">
+            <span class="stat-label">Balance due</span>
+            <span class="stat-value" [class.warn-text]="d.balance > 0">{{ rupees(d.balance) }}</span>
+            <span class="stat-note">{{ openDues().length }} unpaid {{ openDues().length === 1 ? 'fee' : 'fees' }}</span>
+          </div>
+          <div class="card stat">
+            <span class="stat-label">Paid this session</span>
+            <span class="stat-value">{{ rupees(d.paidThisSession) }}</span>
+            <span class="stat-note">{{ d.payments.length }} {{ d.payments.length === 1 ? 'receipt' : 'receipts' }}</span>
+          </div>
+        </div>
+
+        @if ((d.advance ?? 0) > 0) {
+          <div class="note ok advance-note">
+            <app-icon name="wallet" [size]="18" />
+            <span>{{ rupees(d.advance ?? 0) }} advance: used automatically on {{ d.student.name }}'s next fees.</span>
+            <button type="button" class="btn btn-ghost sm" (click)="openRefund()">Refund</button>
+          </div>
+        }
+
+        @if (d.balance > 0) {
+          <div class="row actions">
+            <button type="button" class="btn btn-primary lg" (click)="paying.set(true)">Record payment</button>
+            @if (d.student.active || d.student.remindAfterLeaving) {
+              <button type="button" class="btn btn-outline lg" (click)="remind()" aria-label="Send WhatsApp reminder">
+                <app-icon name="whatsapp" [size]="18" /> Remind
               </button>
+            }
+          </div>
+        }
+
+        @if (d.balance <= 0 && d.student.active) {
+          <button type="button" class="btn btn-outline" style="align-self: flex-start" (click)="paying.set(true)">
+            {{ (d.siblingCount ?? 0) > 0 ? 'Record payment (family)' : 'Take money in advance' }}
+          </button>
+        }
+
+          @if (nextDue(); as n) {
+            <div class="note"><app-icon name="clock" [size]="18" /><span>Next fee: {{ n.headName }} {{ rupees(n.amount) }} due {{ niceDate(n.dueDate) }}</span></div>
+          }
+
+        @if (d.student.active) {
+          <button type="button" class="btn btn-ghost danger" style="align-self: center" (click)="openLeave()">
+            <app-icon name="logout" [size]="18" /> Mark as left
+          </button>
+        }
+        }
+      }
+
+      @case ('fees') {
+        @if (data(); as d) {
+        <section class="stack">
+          <div class="section-title">
+            <h2 class="h2">Fees this session</h2>
+            @if (d.student.active) {
+              <button type="button" class="btn btn-ghost sm" (click)="openCharge()"><app-icon name="plus" [size]="16" [stroke]="2" /> Add charge</button>
+            }
+          </div>
+          @if (d.dues.length === 0) {
+            <p class="muted empty-line">No fees raised yet.</p>
+          } @else {
+            <div class="card card--list">
+              @for (f of d.dues; track f.id) {
+                <button type="button" class="list-row row-plain" (click)="openWaive(f)" [attr.aria-label]="'Change ' + f.headName + ' ' + f.periodLabel">
+                  <div class="list-main">
+                    <span class="list-title">{{ f.headName }}@if (f.kind && f.kind !== 'OpeningBalance' && kindLabel[f.kind] !== f.headName) { <span class="tag-kind">{{ kindLabel[f.kind] }}</span> }</span>
+                    <span class="list-sub">{{ f.periodLabel }}@if (f.discount > 0) { · {{ rupees(f.discount) }} off }</span>
+                  </div>
+                  <div class="amount-col">
+                    <strong>{{ rupees(f.amount) }}</strong>
+                    <span [class]="'badge ' + statusClass(f)">{{ statusLabel(f) }}</span>
+                  </div>
+                </button>
+              }
+            </div>
+            <span class="muted small">Tap a fee to waive part of it.</span>
+          }
+        </section>
+
+          @if (upcoming().length) {
+            <section class="stack">
+              <h2 class="h2">Coming up this session</h2>
+              <div class="card card--list">
+                @for (u of upcoming(); track u.dueDate + u.headName) {
+                  <div class="list-row">
+                    <div class="list-main">
+                      <span class="list-title">{{ u.headName }}</span>
+                      <span class="list-sub">{{ u.periodLabel }}@if (u.discount > 0) { · {{ rupees(u.discount) }} off }</span>
+                    </div>
+                    <div class="amount-col">
+                      <strong>{{ rupees(u.amount) }}</strong>
+                      <span class="badge">Due {{ niceDate(u.dueDate) }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+              <span class="muted small">From today's fee setup. Changing fees, discounts or the {{ labels.l().groupLower }} changes this list.</span>
+            </section>
+          }
+
+        @if ((d.adjustments ?? []).length) {
+          <details class="card adj-list">
+            <summary>Fee changes · {{ d.adjustments!.length }}</summary>
+            @for (a of d.adjustments!; track a.id) {
+              <div class="adj-row">
+                <span>{{ a.kind === 'Waive' ? 'Waived' : 'Charge added' }} {{ rupees(a.amount) }} · {{ a.reason }}</span>
+                <span class="muted">{{ a.by }} · {{ niceDate(a.createdAt.slice(0, 10)) }}</span>
+              </div>
+            }
+          </details>
+        }
+
+        <section class="stack">
+          <h2 class="h2">Receipts</h2>
+          @if (d.payments.length === 0) {
+            <p class="muted empty-line">No payments yet.</p>
+          } @else {
+            <div class="card card--list">
+              @for (p of d.payments; track p.id) {
+                <a class="list-row row-link" [routerLink]="['/receipts', p.id]">
+                  <span class="avatar" [class.warn]="p.cancelled"><app-icon [name]="p.cancelled ? 'x' : p.mode === 'Opening' ? 'wallet' : 'file'" [size]="18" /></span>
+                  <div class="list-main">
+                    <span class="list-title">{{ p.mode === 'Opening' ? 'Advance before ClassKendra' : p.receiptNo }}@if (p.cancelled) { <span class="badge warn" style="margin-left: 6px">Cancelled</span> }</span>
+                    @if (p.cancelled) {
+                      <span class="list-sub">{{ niceDate(p.paidOn) }} · {{ p.mode }} · {{ p.cancelReason }}</span>
+                    } @else {
+                      <span class="list-sub">{{ niceDate(p.paidOn) }} · {{ p.mode }} · {{ p.allocations.length }} {{ p.allocations.length === 1 ? 'fee' : 'fees' }}</span>
+                    }
+                  </div>
+                  <strong [style.text-decoration]="p.cancelled ? 'line-through' : null" [class.muted]="p.cancelled">{{ rupees(p.amount) }}</strong>
+                  <app-icon name="chevron-right" [size]="18" />
+                </a>
+              }
             </div>
           }
-        </div>
-      }
-    </section>
+        </section>
 
-    <section class="stack">
-      <h2 class="h2">Fees this session</h2>
-      @if (d.dues.length === 0) {
-        <p class="muted empty-line">No fees raised yet.</p>
-      } @else {
-        <div class="card card--list">
-          @for (f of d.dues; track f.id) {
-            <div class="list-row">
-              <div class="list-main">
-                <span class="list-title">{{ f.headName }}</span>
-                <span class="list-sub">{{ f.periodLabel }}@if (f.discount > 0) { · {{ rupees(f.discount) }} discount }</span>
-              </div>
-              <div class="amount-col">
-                <strong>{{ rupees(f.amount) }}</strong>
-                <span [class]="'badge ' + statusClass(f)">{{ statusLabel(f) }}</span>
-              </div>
+        @if ((d.refunds ?? []).length) {
+          <section class="stack">
+            <h2 class="h2">Refunds</h2>
+            <div class="card card--list">
+              @for (r of d.refunds!; track r.id) {
+                <div class="list-row">
+                  <span class="avatar"><app-icon name="wallet" [size]="18" /></span>
+                  <div class="list-main">
+                    <span class="list-title">{{ r.refundNo }}</span>
+                    <span class="list-sub">{{ niceDate(r.refundedOn) }} · {{ r.mode }} · {{ r.reason }}</span>
+                  </div>
+                  <strong>− {{ rupees(r.amount) }}</strong>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <section class="stack">
+          <div class="section-title">
+            <h2 class="h2">Discounts</h2>
+            @if (d.student.active) {
+              <button type="button" class="btn btn-ghost sm" (click)="openDiscount()"><app-icon name="plus" [size]="16" [stroke]="2" /> Add</button>
+            }
+          </div>
+          @if (d.student.concessions.length === 0) {
+            <p class="muted empty-line">No discounts. Add one for siblings, staff children or scholarships.</p>
+          } @else {
+            <div class="card card--list">
+              @for (c of d.student.concessions; track c.id) {
+                <div class="list-row">
+                  <span class="avatar ok"><app-icon name="check" [size]="16" [stroke]="2.2" /></span>
+                  <div class="list-main">
+                    <span class="list-title">{{ c.reason }} · {{ describe(c) }}</span>
+                    @if (c.note) { <span class="list-sub">{{ c.note }}</span> }
+                  </div>
+                  <button type="button" class="icon-btn plain" [attr.aria-label]="'Remove discount ' + describe(c)" (click)="removeDiscount(c)">
+                    <app-icon name="trash" [size]="18" />
+                  </button>
+                </div>
+              }
             </div>
           }
-        </div>
-      }
-    </section>
+        </section>
 
-    <section class="stack">
-      <h2 class="h2">Receipts</h2>
-      @if (d.payments.length === 0) {
-        <p class="muted empty-line">No payments yet.</p>
-      } @else {
-        <div class="card card--list">
-          @for (p of d.payments; track p.id) {
-            <a class="list-row row-link" [routerLink]="['/receipts', p.id]">
-              <span class="avatar"><app-icon name="file" [size]="18" /></span>
-              <div class="list-main">
-                <span class="list-title">{{ p.receiptNo }}</span>
-                <span class="list-sub">{{ niceDate(p.paidOn) }} · {{ p.mode }} · {{ p.allocations.length }} {{ p.allocations.length === 1 ? 'fee' : 'fees' }}</span>
+        <section class="card link-card">
+          <div class="link-text">
+            <strong>Parent payment link</strong>
+            <span class="muted">Parents open this from the WhatsApp reminder and pay by UPI. No app needed.</span>
+          </div>
+          <div class="row" style="gap: 8px">
+            <button type="button" class="btn btn-outline sm" (click)="copyLink(d.payLink)">Copy link</button>
+            <a class="btn btn-outline sm" [href]="d.payLink" target="_blank" rel="noopener">Open</a>
+            <a class="btn btn-ghost sm" routerLink="/messages" [queryParams]="{ studentId: d.student.id }">Messages</a>
+          </div>
+        </section>
+
+        <section class="card link-card">
+          <div class="link-text">
+            <strong>Before ClassKendra</strong>
+            @if (d.opening && (d.opening.previousDues > 0 || d.opening.advancePaid > 0)) {
+              <span class="muted">Previous dues {{ rupees(d.opening.previousDues) }} · Advance paid {{ rupees(d.opening.advancePaid) }}</span>
+            } @else {
+              <span class="muted">Fees owed, or paid ahead, before you started using ClassKendra.</span>
+            }
+          </div>
+          @if (!d.opening || d.opening.editable) {
+            <button type="button" class="btn btn-outline sm" (click)="openOpening()">{{ d.opening && (d.opening.previousDues > 0 || d.opening.advancePaid > 0) ? 'Change' : 'Add' }}</button>
+          }
+        </section>
+        }
+      }
+
+      @case ('attendance') {
+        @if (attendance(); as a) {
+          <div class="grid-2">
+            <div class="card stat">
+              <span class="stat-label">This session</span>
+              <span class="stat-value" [class.warn-text]="a.percent !== null && a.percent < 75">{{ a.percent === null ? '—' : a.percent + '%' }}</span>
+              <span class="stat-note">{{ a.present }} present · {{ a.absent }} absent · since {{ niceDate(a.since) }}</span>
+            </div>
+            <div class="card stat">
+              <span class="stat-label">{{ monthName(a.month) }}</span>
+              <span class="stat-value">{{ monthPresent() }}/{{ a.days.length }}</span>
+              <span class="stat-note">classes present</span>
+            </div>
+          </div>
+
+          <div class="row" style="justify-content: space-between">
+            <button type="button" class="icon-btn" aria-label="Previous month" (click)="shiftMonth(-1)"><app-icon name="chevron-left" /></button>
+            <strong>{{ monthName(a.month) }}</strong>
+            <button type="button" class="icon-btn" aria-label="Next month" [disabled]="a.month >= thisMonth" (click)="shiftMonth(1)"><app-icon name="chevron-right" /></button>
+          </div>
+          <div class="cal" role="grid" [attr.aria-label]="'Attendance in ' + monthName(a.month)">
+            @for (w of weekdays; track w) { <span class="cal-head">{{ w }}</span> }
+            @for (c of calendar(); track $index) {
+              <span class="cal-day" [class.present]="c?.status === 'Present'" [class.absent]="c?.status === 'Absent'" [class.empty]="!c">
+                {{ c?.day ?? '' }}
+              </span>
+            }
+          </div>
+          <span class="muted small">Green = present, orange = absent. Days with no register (holidays, no class) are blank.</span>
+
+          @if (a.recentAbsences.length) {
+            <section class="stack">
+              <h2 class="h2">Recent absences</h2>
+              <div class="card card--list">
+                @for (dt of a.recentAbsences; track dt) {
+                  <div class="list-row"><span class="list-main"><span class="list-title">{{ longDate(dt) }}</span></span></div>
+                }
               </div>
-              <strong>{{ rupees(p.amount) }}</strong>
+            </section>
+          }
+        } @else {
+          <p class="muted">Loading…</p>
+        }
+      }
+
+      @case ('slips') {
+        <div class="card card--list">
+          @if (st.admissionNo) {
+            <a class="list-row row-link" [routerLink]="['/students', id(), 'admission']">
+              <span class="avatar accent"><app-icon name="cap" [size]="18" /></span>
+              <span class="list-main"><span class="list-title">Admission slip</span><span class="list-sub">Admission no. {{ st.admissionNo }}, class and fees</span></span>
               <app-icon name="chevron-right" [size]="18" />
             </a>
           }
+          <a class="list-row row-link" [routerLink]="['/students', id(), 'slip', 'statement']">
+            <span class="avatar accent"><app-icon name="file" [size]="18" /></span>
+            <span class="list-main"><span class="list-title">Fee statement</span><span class="list-sub">Every fee and payment this session, with the balance</span></span>
+            <app-icon name="chevron-right" [size]="18" />
+          </a>
+          <a class="list-row row-link" [routerLink]="['/students', id(), 'slip', 'due']">
+            <span class="avatar accent"><app-icon name="wallet" [size]="18" /></span>
+            <span class="list-main"><span class="list-title">Fee due slip</span><span class="list-sub">What is owed and by when, with the payment link</span></span>
+            <app-icon name="chevron-right" [size]="18" />
+          </a>
+          <a class="list-row row-link" [routerLink]="['/students', id(), 'slip', 'nodues']">
+            <span class="avatar accent"><app-icon name="check" [size]="18" /></span>
+            <span class="list-main"><span class="list-title">No-dues certificate</span>
+              <span class="list-sub">{{ (data()?.balance ?? 0) > 0 ? rupees(data()!.balance) + ' is still owed: clear it first' : 'Nothing owed: ready to print' }}</span></span>
+            <app-icon name="chevron-right" [size]="18" />
+          </a>
         </div>
+        <span class="muted small">Each slip can be printed, saved as PDF or shared on WhatsApp.</span>
       }
-    </section>
+    }
   }
 </div>
+
+@if (leaving() && data(); as d) {
+  <app-bottom-sheet [title]="'Mark ' + d.student.name + ' as left'" (closed)="leaving.set(false)">
+    <form class="stack" (ngSubmit)="saveLeave()" novalidate style="gap: 14px">
+      <p class="muted small" style="margin-top: -8px">Nothing is deleted. Their fees, receipts and attendance are kept, and you can bring them back with Rejoin.</p>
+      <div class="field">
+        <label class="label" for="lv-date">Last day</label>
+        <input id="lv-date" name="leftOn" class="input" type="date" [max]="today" [min]="d.student.joinedOn <= today ? d.student.joinedOn : null"
+               [ngModel]="leftOn()" (ngModelChange)="leftOn.set($event)">
+      </div>
+      <fieldset class="plain">
+        <legend class="label">Why</legend>
+        <div class="chips wrap">
+          @for (r of leftReasons; track r.id) {
+            <button type="button" class="chip" [class.on]="leftReason() === r.id" [attr.aria-pressed]="leftReason() === r.id" (click)="leftReason.set(r.id)">{{ r.label }}</button>
+          }
+        </div>
+      </fieldset>
+      <div class="field">
+        <label class="label" for="lv-note">Note <span class="muted" style="font-weight: 400">optional</span></label>
+        <input id="lv-note" name="note" class="input" maxlength="200" placeholder="e.g. Family moved to Pune" [ngModel]="leftNote()" (ngModelChange)="leftNote.set($event)">
+      </div>
+
+      @if (d.balance > 0) {
+        <fieldset class="plain">
+          <legend class="label">Pending fees · {{ rupees(d.balance) }}</legend>
+          <div class="seg" role="radiogroup" aria-label="Pending fees">
+            <button type="button" role="radio" [class.on]="duesChoice() === 'Keep'" [attr.aria-checked]="duesChoice() === 'Keep'" (click)="duesChoice.set('Keep')">Still to be paid</button>
+            <button type="button" role="radio" [class.on]="duesChoice() === 'Waive'" [attr.aria-checked]="duesChoice() === 'Waive'" (click)="duesChoice.set('Waive')">Waive</button>
+          </div>
+        </fieldset>
+        @if (duesChoice() === 'Keep') {
+          <label class="row" style="gap: 10px; align-items: flex-start">
+            <input type="checkbox" name="remind" [ngModel]="keepReminding()" (ngModelChange)="keepReminding.set($event)" style="margin-top: 3px">
+            <span>Keep sending WhatsApp fee reminders until it is paid</span>
+          </label>
+        } @else {
+          <div class="field">
+            <label class="label" for="lv-waive">Why are you waiving {{ rupees(d.balance) }}?</label>
+            <textarea id="lv-waive" name="waiveReason" class="input" rows="2" maxlength="300" placeholder="e.g. Agreed with the parent by the principal"
+                      [ngModel]="waiveReason()" (ngModelChange)="waiveReason.set($event)"></textarea>
+            <span class="muted small">This goes in the activity log with your name.</span>
+          </div>
+        }
+      }
+      <p class="muted small">Fees raised for months after the last day are removed. Earlier fees stay as you chose above.</p>
+      @if (leaveError()) { <div class="note warn" role="alert">{{ leaveError() }}</div> }
+      <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">Mark as left</button>
+    </form>
+  </app-bottom-sheet>
+}
+
+@if (sheet() && data(); as d) {
+  <app-bottom-sheet [title]="sheet() === 'waive' ? 'Waive part of ' + (waiveDue()?.headName ?? '') : sheet() === 'charge' ? 'Add a charge' : sheet() === 'refund' ? 'Refund advance' : 'Before ClassKendra'"
+                    (closed)="sheet.set(null)">
+    <form class="stack" (ngSubmit)="saveMoney()" novalidate style="gap: 14px">
+      @switch (sheet()) {
+        @case ('waive') {
+          @if (waiveDue(); as f) {
+            <p class="muted small" style="margin-top: -8px">{{ f.periodLabel }} · fee {{ rupees(f.amount) }} · paid {{ rupees(f.paidAmount) }}</p>
+          }
+          <div class="field">
+            <label class="label" for="m-amount">Amount to waive</label>
+            <div class="input-group"><span class="prefix">₹</span>
+              <input id="m-amount" name="amount" type="text" inputmode="numeric" [ngModel]="mAmount()" (ngModelChange)="mAmount.set(digits($event))"></div>
+            @if (waiveNote()) { <span class="hint muted">{{ waiveNote() }}</span> }
+          </div>
+          <div class="field">
+            <label class="label" for="m-reason">Why?</label>
+            <textarea id="m-reason" name="reason" class="input" rows="2" maxlength="300" placeholder="e.g. Approved by the principal, family hardship"
+                      [ngModel]="mReason()" (ngModelChange)="mReason.set($event)"></textarea>
+            <span class="muted small">Saved in the activity log with your name.</span>
+          </div>
+        }
+        @case ('charge') {
+          <div class="field">
+            <label class="label" for="m-name">What for</label>
+            <input id="m-name" name="name" class="input" maxlength="60" placeholder="e.g. Lab breakage, ID card, Picnic" [ngModel]="mName()" (ngModelChange)="mName.set($event)">
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="label" for="m-amount">Amount</label>
+              <div class="input-group"><span class="prefix">₹</span>
+                <input id="m-amount" name="amount" type="text" inputmode="numeric" [ngModel]="mAmount()" (ngModelChange)="mAmount.set(digits($event))"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="m-date">Due on</label>
+              <input id="m-date" name="date" class="input" type="date" [ngModel]="mDate()" (ngModelChange)="mDate.set($event)">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="m-reason">Note <span class="muted" style="font-weight: 400">optional, shown to the parent</span></label>
+            <input id="m-reason" name="reason" class="input" maxlength="40" placeholder="e.g. Broken beaker, 12 Nov" [ngModel]="mReason()" (ngModelChange)="mReason.set($event)">
+          </div>
+        }
+        @case ('refund') {
+          <p class="muted small" style="margin-top: -8px">{{ rupees(d.advance ?? 0) }} advance can be given back. To refund money already on a fee, waive that fee first.</p>
+          <div class="grid-2">
+            <div class="field">
+              <label class="label" for="m-amount">Amount</label>
+              <div class="input-group"><span class="prefix">₹</span>
+                <input id="m-amount" name="amount" type="text" inputmode="numeric" [ngModel]="mAmount()" (ngModelChange)="mAmount.set(digits($event))"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="m-date">Date</label>
+              <input id="m-date" name="date" class="input" type="date" [max]="today" [ngModel]="mDate()" (ngModelChange)="mDate.set($event)">
+            </div>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="Given back by">
+            @for (m of refundModes; track m) {
+              <button type="button" role="radio" [class.on]="mMode() === m" [attr.aria-checked]="mMode() === m" (click)="mMode.set(m)">{{ m }}</button>
+            }
+          </div>
+          <div class="field">
+            <label class="label" for="m-reason">Why?</label>
+            <textarea id="m-reason" name="reason" class="input" rows="2" maxlength="300" placeholder="e.g. Student left in October, term fee returned"
+                      [ngModel]="mReason()" (ngModelChange)="mReason.set($event)"></textarea>
+            <span class="muted small">A refund can't be undone. It is saved in the activity log with your name.</span>
+          </div>
+        }
+        @case ('opening') {
+          <p class="muted small" style="margin-top: -8px">For centres that started using ClassKendra mid-year. Enter 0 to remove.</p>
+          <div class="grid-2">
+            <div class="field">
+              <label class="label" for="m-amount">Previous dues</label>
+              <div class="input-group"><span class="prefix">₹</span>
+                <input id="m-amount" name="amount" type="text" inputmode="numeric" placeholder="0" [ngModel]="mAmount()" (ngModelChange)="mAmount.set(digits($event))"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="m-adv">Advance already paid</label>
+              <div class="input-group"><span class="prefix">₹</span>
+                <input id="m-adv" name="advance" type="text" inputmode="numeric" placeholder="0" [ngModel]="mAdvance()" (ngModelChange)="mAdvance.set(digits($event))"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="m-date">As on</label>
+            <input id="m-date" name="date" class="input" type="date" [max]="today" [ngModel]="mDate()" (ngModelChange)="mDate.set($event)">
+          </div>
+          <p class="muted small">Previous dues become a fee "Previous dues". The advance is used on the next fees. Neither counts in this month's collection.</p>
+        }
+      }
+      @if (mError()) { <div class="note warn" role="alert">{{ mError() }}</div> }
+      <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">
+        {{ sheet() === 'waive' ? 'Waive' : sheet() === 'charge' ? 'Add charge' : sheet() === 'refund' ? 'Save refund' : 'Save' }}
+      </button>
+    </form>
+  </app-bottom-sheet>
+}
 
 @if (paying() && data(); as d) {
   <app-payment-sheet [studentId]="d.student.id" [studentName]="d.student.name" [batchName]="d.batchName"

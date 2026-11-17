@@ -44,8 +44,10 @@
         <div class="note ok"><app-icon name="check" [size]="18" [stroke]="2.2" /> {{ 'Nothing is due right now. Thank you!' | t }}</div>
       } @else {
         <span class="label">{{ 'Choose what to pay' | t }}</span>
+        @for (c of groups(); track c.studentId) {
+        @if (groups().length > 1) { <strong class="child-name">{{ c.name }} <span class="muted">· {{ c.batchName }}</span></strong> }
         <div class="lines">
-          @for (d of p.dues; track d.id) {
+          @for (d of c.dues; track d.id) {
             <label class="line">
               <input type="checkbox" [checked]="ticked().has(d.id)" (change)="toggle(d.id)">
               <span class="line-text">
@@ -60,6 +62,7 @@
             </label>
           }
         </div>
+        }
         <div class="total"><span>{{ 'Total' | t }}</span><strong>{{ rupees(selectedTotal()) }}</strong></div>
       }
     </section>

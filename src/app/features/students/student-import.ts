@@ -91,7 +91,7 @@ export class StudentImport {
   protected downloadSample(): void {
     const batch = this.batches()[0]?.name ?? 'Class 10 · Maths';
     const col = this.labels.l().group;
-    const csv = `Name,Parent phone,${col}\nAarav Gupta,9876543210,${batch}\nAnanya Rao,9812345678,${batch}\n`;
+    const csv = `Name,Parent phone,${col},Previous dues,Advance paid\nAarav Gupta,9876543210,${batch},2500,0\nAnanya Rao,9812345678,${batch},0,1000\n`;
     const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
     const a = Object.assign(document.createElement('a'), { href: url, download: 'classkendra-students-sample.csv' });
     a.click();
@@ -109,10 +109,21 @@ function parseCsv(text: string): StudentImportRow[] {
   const iBatch = header.findIndex((h) => /batch|class/.test(h));
   // Optional: the school register number ("Admission no", "Adm. no", "Registration no", "Scholar no").
   const iAdm = header.findIndex((h) => /admission|adm\b|adm\.|registration|reg\.? ?no|scholar/.test(h));
+  // Optional: money from before ClassKendra ("Previous dues", "Balance", "Pending"; "Advance paid", "Advance").
+  const iDues = header.findIndex((h) => /previous|dues|balance|pending|arrear/.test(h));
+  const iAdv = header.findIndex((h) => /advance/.test(h));
   if (iName < 0 || iPhone < 0 || iBatch < 0) return [];
+  const money = (i: number, c: string[]) => (i >= 0 ? Number((c[i] ?? '').replace(/[^0-9.]/g, '')) || 0 : 0);
   return lines.slice(1).map((line) => {
     const c = splitCsvLine(line);
-    return { name: c[iName] ?? '', parentPhone: c[iPhone] ?? '', batchName: c[iBatch] ?? '', admissionNo: iAdm >= 0 ? (c[iAdm] ?? '').trim() : '' };
+    return {
+      name: c[iName] ?? '',
+      parentPhone: c[iPhone] ?? '',
+      batchName: c[iBatch] ?? '',
+      admissionNo: iAdm >= 0 ? (c[iAdm] ?? '').trim() : '',
+      previousDues: Math.round(money(iDues, c)),
+      advancePaid: Math.round(money(iAdv, c)),
+    };
   });
 }
 

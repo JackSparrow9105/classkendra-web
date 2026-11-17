@@ -140,3 +140,17 @@
   font-size: 11px;
   text-align: center;
 }
+
+/* A cancelled payment: the receipt stays readable, with a stamp across it (also when printed). */
+.receipt { position: relative; }
+.receipt.is-cancelled > :not(.r-stamp) { opacity: 0.55; }
+.r-stamp {
+  position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%) rotate(-14deg);
+  border: 3px solid var(--warn); color: var(--warn); border-radius: 10px;
+  padding: 6px 18px; font-size: 30px; font-weight: 800; letter-spacing: 3px;
+  pointer-events: none; z-index: 1; white-space: nowrap;
+}
+
+.danger {
+  color: var(--warn);
+}

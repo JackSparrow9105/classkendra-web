@@ -70,6 +70,18 @@
         </select>
         @if (invalid('batchId')) { <span class="error-text">Choose a {{ labels.l().groupLower }}.</span> }
       </div>
+      @if (batchChanged()) {
+        <div class="note batch-move" style="grid-column: 1 / -1">
+          <app-icon name="info" [size]="18" />
+          <span class="stack" style="gap: 6px">
+            <span>This month's fees stay at the old {{ labels.l().groupLower }}'s amount; the new {{ labels.l().groupLower }}'s fees start next month.</span>
+            <label class="row" style="gap: 8px; align-items: center">
+              <input type="checkbox" [checked]="chargeNewBatch()" (change)="chargeNewBatch.set($any($event.target).checked)">
+              <span>Charge the new {{ labels.l().groupLower }}'s fee from this month (only fees nothing is paid on yet)</span>
+            </label>
+          </span>
+        </div>
+      }
       <div class="field">
         <label class="label" for="s-joined">{{ isNew() ? 'Admission date' : 'Studying here since' }}</label>
         <input id="s-joined" class="input" type="date" formControlName="joinedOn">
@@ -119,7 +131,7 @@
     @if (isEdit()) {
       <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">Save changes</button>
       <button type="button" class="btn btn-ghost danger" (click)="deactivate()">
-        <app-icon name="trash" [size]="18" /> Remove student
+        <app-icon name="logout" [size]="18" /> Mark as left
       </button>
     } @else {
       @if (isNew()) {

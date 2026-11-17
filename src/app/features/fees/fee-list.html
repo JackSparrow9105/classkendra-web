@@ -68,6 +68,12 @@
         </button>
       }
     </div>
+
+    @if (hasMore()) {
+      <button type="button" class="btn btn-outline block" [disabled]="loadingMore()" (click)="more()">
+        {{ loadingMore() ? 'Loading…' : 'Show more' }} · {{ rows().length }} / {{ total() }}
+      </button>
+    }
   }
 </div>
 

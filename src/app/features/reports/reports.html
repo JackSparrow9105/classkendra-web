@@ -15,6 +15,13 @@
       <span class="hero-label">Collected in {{ monthName(r.month) }}</span>
       <span class="hero-amount">{{ rupees(r.collected) }}</span>
       <span class="hero-label">{{ r.receiptCount }} receipts @if (r.discountGiven > 0) { · {{ rupees(r.discountGiven) }} given as discounts }</span>
+      @if ((r.refunded ?? 0) > 0 || (r.waived ?? 0) > 0) {
+        <span class="hero-label">
+          @if ((r.refunded ?? 0) > 0) { {{ rupees(r.refunded!) }} refunded · net {{ rupees(r.collected - r.refunded!) }} }
+          @if ((r.refunded ?? 0) > 0 && (r.waived ?? 0) > 0) { · }
+          @if ((r.waived ?? 0) > 0) { {{ rupees(r.waived!) }} waived }
+        </span>
+      }
     </section>
 
     <button type="button" class="btn btn-dark lg block no-print" [disabled]="downloading() || r.receiptCount === 0" (click)="download()">

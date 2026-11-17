@@ -5,6 +5,7 @@ import { Batch, FeeSettings, StudentFees } from '../../core/models/models';
 import { LabelService } from '../../core/labels';
 import { BatchService } from '../../core/services/batch.service';
 import { FeeService, FeeTab } from '../../core/services/fee.service';
+import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { initials, isoDate, monthKey, monthName, niceDate, rupees } from '../../shared/format';
 import { Icon } from '../../shared/icon';
 import { ToastService } from '../../shared/toast';
@@ -29,6 +30,13 @@ export class FeeList {
   protected readonly batchId = signal('');
   protected readonly search = signal('');
   protected readonly rows = signal<StudentFees[]>([]);
+  /** Students matching the tab, month, search and batch (all pages). */
+  protected readonly total = signal(0);
+  protected readonly loadingMore = signal(false);
+  protected readonly hasMore = computed(() => this.rows().length < this.total());
+  private page = 1;
+  /** Goes up with every new search, so a slow old reply can't overwrite a newer one. */
+  private request = 0;
   protected readonly batches = signal<Batch[]>([]);
   protected readonly loading = signal(true);
   protected readonly settings = signal<FeeSettings | null | undefined>(undefined);
@@ -49,9 +57,10 @@ export class FeeList {
     return monthKey(d);
   });
 
-  protected readonly pendingTotal = computed(() => this.rows().reduce((t, r) => t + r.pending, 0));
-  protected readonly pendingCount = computed(() => this.rows().filter((r) => r.pending > 0).length);
-  protected readonly paidTotal = computed(() => this.rows().reduce((t, r) => t + r.paid, 0));
+  // Totals for everyone who matches, worked out by the API (the screen only holds the pages loaded so far).
+  protected readonly pendingTotal = signal(0);
+  protected readonly pendingCount = signal(0);
+  protected readonly paidTotal = signal(0);
 
   private searchTimer?: ReturnType<typeof setTimeout>;
 
@@ -118,10 +127,40 @@ export class FeeList {
     });
   }
 
+  /** Next 50 students, added below the ones already shown. */
+  protected more(): void {
+    if (this.loadingMore() || !this.hasMore()) return;
+    this.loadingMore.set(true);
+    this.fetch(this.page + 1, this.request);
+  }
+
+  /** First page for the current tab, month, search and batch. */
   private load(): void {
-    this.fees.list(this.tab(), this.search(), this.month(), this.batchId()).subscribe((rows) => {
-      this.rows.set(rows);
-      this.loading.set(false);
+    this.fetch(1, ++this.request);
+  }
+
+  private fetch(page: number, request: number): void {
+    this.fees.page(this.tab(), this.search(), this.month(), this.batchId(), page).subscribe({
+      next: (res) => {
+        if (request !== this.request) return; // the filters changed while this was loading
+        this.page = res.page;
+        this.total.set(res.total);
+        this.pendingTotal.set(res.pendingTotal);
+        this.pendingCount.set(res.pendingCount);
+        this.paidTotal.set(res.paidTotal);
+        this.rows.update((rows) => {
+          if (page === 1) return res.items;
+          const seen = new Set(rows.map((r) => r.studentId));
+          return [...rows, ...res.items.filter((r) => !seen.has(r.studentId))];
+        });
+        this.loading.set(false);
+        this.loadingMore.set(false);
+      },
+      error: (e) => {
+        this.loading.set(false);
+        this.loadingMore.set(false);
+        this.toast.show(errorMessage(e));
+      },
     });
   }
 }

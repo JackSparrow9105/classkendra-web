@@ -25,6 +25,16 @@ export class ParentPay {
   readonly token = input.required<string>();
 
   protected readonly page = signal<ParentPayPage | null>(null);
+  /** Dues by child (brothers and sisters with the same parent phone share one page). */
+  protected readonly groups = computed(() => {
+    const p = this.page();
+    if (!p) return [];
+    const kids = p.children?.length ? p.children : [{ studentId: '', name: p.studentName, batchName: p.batchName, balance: p.total }];
+    if (kids.length === 1) return [{ ...kids[0]!, dues: p.dues }];
+    return kids
+      .map((k) => ({ ...k, dues: p.dues.filter((d) => d.studentId === k.studentId) }))
+      .filter((k) => k.dues.length > 0);
+  });
   protected readonly invalid = signal(false);
   protected readonly ticked = signal<Set<string>>(new Set());
   protected readonly paying = signal(false);
@@ -98,7 +108,7 @@ export class ParentPay {
           amount: amount * 100,
           currency: 'INR',
           name: p.orgName,
-          description: `${p.studentName} · ${p.batchName}`,
+          description: p.batchName ? `${p.studentName} · ${p.batchName}` : p.studentName,
           theme: { color: '#4f46e5' },
           handler: (res) => this.zone.run(() => this.confirm(orderId, res)),
           modal: { ondismiss: () => this.zone.run(() => this.paying.set(false)) },

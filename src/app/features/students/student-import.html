@@ -35,7 +35,7 @@
           <input type="file" accept=".csv,.xlsx,.xls" (change)="onFile($event)">
           <app-icon name="file" [size]="26" />
           <strong>{{ fileName() || 'Choose a CSV file' }}</strong>
-          <span class="muted" style="font-size: 13px">Columns: Name, Parent phone, {{ labels.l().group }}, Admission no (optional)</span>
+          <span class="muted" style="font-size: 13px">Columns: Name, Parent phone, {{ labels.l().group }}. Optional: Admission no, Previous dues, Advance paid (for fees from before ClassKendra)</span>
         </label>
         <button type="button" class="btn btn-ghost sm" (click)="downloadSample()">Download sample file</button>
 

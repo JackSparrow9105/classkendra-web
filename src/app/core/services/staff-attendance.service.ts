@@ -206,6 +206,11 @@ export class StaffAttendanceService {
     return this.demoUpdate((s) => Object.assign(s.settings, { latitude: round6(latitude), longitude: round6(longitude) }));
   }
 
+  /** PUT /staff-attendance/settings/radius — how far from school staff can check in (50 to 1,000 m). */
+  saveRadius(radius: number): Observable<StaffAttendanceSettings> {
+    return this.api.put<StaffAttendanceSettings>('staff-attendance/settings/radius', { radius });
+  }
+
   saveNotifications(notifyLeaveRequests: boolean, notifyLeaveAnswers: boolean, leaveWhatsApp: boolean): Observable<StaffAttendanceSettings> {
     if (!environment.useMock)
       return this.api.put<StaffAttendanceSettings>('staff-attendance/settings/notifications', { notifyLeaveRequests, notifyLeaveAnswers, leaveWhatsApp });

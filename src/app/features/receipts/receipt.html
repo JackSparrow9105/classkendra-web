@@ -8,9 +8,20 @@
     </div>
   </header>
 
+  @if (p(); as pay) {
+    @if (pay.cancelled) {
+      <div class="note warn no-print" role="status">
+        <app-icon name="x" [size]="18" />
+        <span><b>This payment was cancelled</b> by {{ pay.cancelledBy }} on {{ when(pay.cancelledAt) }}.<br>Reason: {{ pay.cancelReason }}</span>
+        @if (auth.isOwner()) { <button type="button" class="btn btn-ghost sm" (click)="openRestore()">Restore</button> }
+      </div>
+    }
+  }
+
   @if (receipt(); as r) {
     <!-- Receipt design 1. Drawn only from the frozen receipt (r), never from today's centre or student. -->
-    <article class="receipt" [attr.data-layout]="r.layout" aria-label="Fee receipt">
+    <article class="receipt" [class.is-cancelled]="p()?.cancelled" [attr.data-layout]="r.layout" aria-label="Fee receipt">
+      @if (p()?.cancelled) { <span class="r-stamp" aria-hidden="true">CANCELLED</span> }
       <header class="r-head">
         <div class="r-org">
           @if (logo(); as src) {
@@ -52,7 +63,7 @@
             <tr><td>{{ a.headName }}</td><td>{{ a.periodLabel }}</td><td class="num">{{ rupees(a.amount) }}</td></tr>
           }
           @if (r.unallocated > 0) {
-            <tr><td colspan="2">Advance (not against any fee yet)</td><td class="num">{{ rupees(r.unallocated) }}</td></tr>
+            <tr><td colspan="2">Kept as advance (for the next fees)</td><td class="num">{{ rupees(r.unallocated) }}</td></tr>
           }
         </tbody>
         <tfoot>
@@ -68,16 +79,79 @@
         }
         <span class="muted">Received by {{ r.receivedBy }}</span>
       </div>
+      @if (p()?.together?.length) {
+        <p class="r-note muted">Paid together with:
+          @for (o of p()!.together!; track o.id; let last = $last) {
+            {{ o.studentName }} ({{ o.receiptNo }}, {{ rupees(o.amount) }}){{ last ? '' : ', ' }}
+          }
+        </p>
+      }
       <p class="r-note muted">This is a computer-generated receipt and does not need a signature.</p>
     </article>
 
     <div class="stack no-print">
-      <a class="btn btn-primary lg block" [href]="whatsappUrl()" target="_blank" rel="noopener">
-        <app-icon name="whatsapp" [size]="18" /> Share on WhatsApp
-      </a>
+      @if (p()?.together?.length) {
+        <div class="row" style="gap: 8px; flex-wrap: wrap">
+          @for (o of p()!.together!; track o.id) {
+            <a class="btn btn-outline sm" [routerLink]="['/receipts', o.id]">{{ o.studentName }}'s receipt</a>
+          }
+        </div>
+      }
+      @if (!p()?.cancelled) {
+        <a class="btn btn-primary lg block" [href]="whatsappUrl()" target="_blank" rel="noopener">
+          <app-icon name="whatsapp" [size]="18" /> Share on WhatsApp
+        </a>
+      }
       <button type="button" class="btn btn-outline lg block" (click)="print()">
         <app-icon name="file" [size]="18" /> Print or save as PDF
       </button>
+      @if (canCancel()) {
+        <button type="button" class="btn btn-ghost danger" (click)="openCancel()">
+          <app-icon name="x" [size]="18" /> Cancel this payment
+        </button>
+      } @else if (p()?.mode === 'Online' && !p()?.cancelled) {
+        <p class="muted small" style="text-align: center">Online payments can't be cancelled here. Refund them from Razorpay.</p>
+      }
     </div>
   }
 </div>
+
+@if (restoring() && p(); as pay) {
+  <app-bottom-sheet [title]="'Restore receipt ' + pay.receiptNo" (closed)="restoring.set(false)">
+    <form class="stack" (ngSubmit)="confirmRestore()" novalidate style="gap: 14px">
+      <p class="muted small" style="margin-top: -8px">
+        {{ rupees(pay.amount) }} from {{ pay.studentName }} counts again, with the same receipt number. The money goes on
+        {{ pay.studentName }}'s unpaid fees, oldest first; anything left over is kept as advance.
+      </p>
+      <div class="field">
+        <label class="label" for="rs-reason">Why is it being restored?</label>
+        <textarea id="rs-reason" name="reason" class="input" rows="2" maxlength="300" placeholder="e.g. Cancelled by mistake; the cheque cleared"
+                  [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)"></textarea>
+        <span class="muted small">Saved in the activity log with your name.</span>
+      </div>
+      @if (cancelError()) { <div class="note warn" role="alert">{{ cancelError() }}</div> }
+      <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">Restore this payment</button>
+    </form>
+  </app-bottom-sheet>
+}
+
+@if (cancelling() && p(); as pay) {
+  <app-bottom-sheet [title]="'Cancel receipt ' + pay.receiptNo" (closed)="cancelling.set(false)">
+    <form class="stack" (ngSubmit)="confirmCancel()" novalidate style="gap: 14px">
+      <p class="muted small" style="margin-top: -8px">
+        {{ rupees(pay.amount) }} from {{ pay.studentName }} will no longer count as paid, and those fees become pending again.
+        The receipt is kept and marked cancelled; its number is not used again.
+      </p>
+      <div class="field">
+        <label class="label" for="cx-reason">Why is it being cancelled?</label>
+        <textarea id="cx-reason" name="reason" class="input" rows="3" maxlength="300"
+                  placeholder="e.g. Entered for the wrong student · Cheque bounced · Wrong amount"
+                  [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)"></textarea>
+        <span class="muted small">Saved in the activity log with your name. The owner is told when staff cancel a payment.</span>
+      </div>
+      @if (cancelError()) { <div class="note warn" role="alert">{{ cancelError() }}</div> }
+      <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">Cancel this payment</button>
+      <button type="button" class="btn btn-ghost" (click)="cancelling.set(false)">Keep the payment</button>
+    </form>
+  </app-bottom-sheet>
+}

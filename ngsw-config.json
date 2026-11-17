@@ -39,6 +39,23 @@
         "maxSize": 30,
         "maxAge": "30d"
       }
+    },
+    {
+      "name": "attendance-offline",
+      "urls": [
+        "https://classkendra-api-aad5hxgzf5dtc8fe.centralindia-01.azurewebsites.net/api/v1/batches",
+        "https://classkendra-api-aad5hxgzf5dtc8fe.centralindia-01.azurewebsites.net/api/v1/students?**",
+        "https://classkendra-api-aad5hxgzf5dtc8fe.centralindia-01.azurewebsites.net/api/v1/attendance/**",
+        "https://classkendra-api-aad5hxgzf5dtc8fe.centralindia-01.azurewebsites.net/api/v1/dashboard/teacher",
+        "https://classkendra-api-aad5hxgzf5dtc8fe.centralindia-01.azurewebsites.net/api/v1/holidays/on?**",
+        "https://classkendra-api-aad5hxgzf5dtc8fe.centralindia-01.azurewebsites.net/api/v1/holidays/on"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "timeout": "5s",
+        "maxSize": 300,
+        "maxAge": "7d"
+      }
     }
   ]
 }

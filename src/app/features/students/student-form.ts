@@ -39,6 +39,10 @@ export class StudentForm {
   protected readonly optionalHeads = signal<FeeHead[]>([]);
   protected readonly optedIn = signal<string[]>([]);
   protected readonly batchIdValue = signal('');
+  /** Edit: the batch the student was in when the page opened, and whether to charge the new batch's fee this month. */
+  protected readonly savedBatch = signal('');
+  protected readonly chargeNewBatch = signal(false);
+  protected readonly batchChanged = computed(() => this.isEdit() && !!this.savedBatch() && this.batchIdValue() !== this.savedBatch());
   protected readonly availableOptional = computed(() =>
     this.optionalHeads().filter((h) => (h.amounts[this.batchIdValue()] ?? 0) > 0),
   );
@@ -105,6 +109,7 @@ export class StudentForm {
           return;
         }
         this.form.patchValue({ ...s, admissionNo: s.admissionNo ?? '' });
+        this.savedBatch.set(s.batchId);
         this.savedNo.set(s.admissionNo ?? '');
         this.kind.set(s.isNewAdmission ? 'new' : 'existing');
         this.optedIn.set(s.optionalHeadIds ?? []);
@@ -155,6 +160,7 @@ export class StudentForm {
       optionalHeadIds: this.optedIn().filter((id) => available.has(id)),
       isNewAdmission: this.isNew(),
       waiveAdmissionFee: this.isNew() && this.admissionFee() > 0 && !this.chargeAdmissionFee(),
+      chargeNewBatchThisMonth: this.batchChanged() && this.chargeNewBatch(),
     };
     const id = this.id();
     const call$ = id ? this.students.update(id, value) : this.students.create(value);
@@ -190,12 +196,9 @@ export class StudentForm {
     });
   }
 
+  /** Opens the "Mark as left" sheet on the student's page (last day, reason, what to do with pending fees). */
   protected deactivate(): void {
     const id = this.id();
-    if (!id || !confirm('Remove this student? Their paid fee history is kept.')) return;
-    this.students.deactivate(id).subscribe(() => {
-      this.toast.show('Student removed');
-      this.router.navigateByUrl('/students');
-    });
+    if (id) this.router.navigate(['/students', id], { queryParams: { leave: 1 } });
   }
 }

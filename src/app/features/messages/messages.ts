@@ -45,6 +45,10 @@ export class Messages {
   protected readonly rows = signal<MessageLog[]>([]);
   protected readonly summary = signal<MessageSummary | null>(null);
   protected readonly loaded = signal(false);
+  /** Messages matching the filters, and how many of the newest ones are shown ("Show more" adds 50, up to 200). */
+  protected readonly total = signal(0);
+  protected readonly limit = signal(50);
+  protected readonly hasMore = computed(() => this.rows().length < this.total() && this.limit() < 200);
 
   protected readonly deliveredPct = computed(() => {
     const s = this.summary();
@@ -66,20 +70,30 @@ export class Messages {
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
   }
 
+  protected more(): void {
+    this.limit.update((n) => Math.min(200, n + 50));
+    this.load();
+  }
+
   protected setType(t: MessageType | ''): void {
     this.type.set(t);
+    this.limit.set(50);
     this.load();
   }
 
   protected setStatus(s: MessageStatus | ''): void {
     this.status.set(s);
+    this.limit.set(50);
     this.load();
   }
 
   protected onSearch(v: string): void {
     this.search.set(v);
     clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.load(), 300);
+    this.searchTimer = setTimeout(() => {
+      this.limit.set(50);
+      this.load();
+    }, 300);
   }
 
   protected retry(m: MessageLog): void {
@@ -103,9 +117,10 @@ export class Messages {
 
   private load(): void {
     this.messages
-      .list({ type: this.type(), status: this.status(), search: this.search(), studentId: this.studentId() })
-      .subscribe((rows) => {
-        this.rows.set(rows);
+      .page({ type: this.type(), status: this.status(), search: this.search(), studentId: this.studentId() }, this.limit())
+      .subscribe((res) => {
+        this.rows.set(res.items);
+        this.total.set(res.total);
         this.loaded.set(true);
       });
     this.messages.summary().subscribe((s) => this.summary.set(s));

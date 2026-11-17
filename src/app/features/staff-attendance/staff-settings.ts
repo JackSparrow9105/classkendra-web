@@ -2,13 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { StaffAttendanceSettings, StaffTiming } from '../../core/models/models';
-import { StaffAttendanceService, datesLabel, timeLabel } from '../../core/services/staff-attendance.service';
+import { StaffAttendanceService, timeLabel } from '../../core/services/staff-attendance.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
 import { BottomSheet } from '../../shared/bottom-sheet';
 import { Icon } from '../../shared/icon';
 import { ToastService } from '../../shared/toast';
 
-/** /staff-attendance/settings — school timing, check-in location, weekly off, holidays, a different timing for someone. */
+/** /staff-attendance/settings — school timing, check-in location and distance, weekly off, a different timing for someone. Holidays are at /holidays. */
 @Component({
   selector: 'app-staff-settings',
   imports: [FormsModule, RouterLink, Icon, BottomSheet],
@@ -49,6 +49,13 @@ import { ToastService } from '../../shared/toast';
             @if (s.latitude !== null) { <span class="badge ok">Set</span> } @else { <span class="badge warn">Not set</span> }
           </div>
           <span class="row muted" style="gap: 6px; font-size: 13.5px"><app-icon name="pin" [size]="16" /> Teachers can check in within {{ s.radius }} m of the school.</span>
+          <div class="field">
+            <label class="label" for="st-radius">Check-in distance</label>
+            <select id="st-radius" class="input" [ngModel]="s.radius" (ngModelChange)="setRadius($event)" [disabled]="busy()">
+              @for (r of radiusOptions(); track r) { <option [ngValue]="r">{{ r >= 1000 ? '1 km' : r + ' m' }}{{ r === 300 ? ' (recommended)' : '' }}</option> }
+            </select>
+            <span class="muted" style="font-size: 12px">Phone location can be 50–100 m off inside buildings. A smaller distance may stop honest check-ins.</span>
+          </div>
           @if (s.latitude === null) {
             <span class="muted" style="font-size: 12.5px">Do this once while you're at school. Until then, nobody can check in.</span>
           }
@@ -57,21 +64,13 @@ import { ToastService } from '../../shared/toast';
           </button>
         </section>
 
-        <section class="card stack" style="gap: 6px">
-          <div class="row" style="justify-content: space-between">
+        <a routerLink="/holidays" class="card row" style="justify-content: space-between; text-decoration: none; color: inherit">
+          <span class="stack" style="gap: 2px">
             <strong>Holidays</strong>
-            <button type="button" class="btn btn-ghost sm" (click)="addingHoliday.set(true)"><app-icon name="plus" [size]="16" /> Add</button>
-          </div>
-          @for (h of s.holidays; track h.id) {
-            <div class="set-row">
-              <span>{{ h.name }}</span>
-              <span class="row" style="gap: 6px"><span class="muted">{{ dates(h.from, h.to) }}</span>
-                <button type="button" class="icon-btn" [attr.aria-label]="'Delete ' + h.name" (click)="deleteHoliday(h.id, h.name)"><app-icon name="trash" [size]="16" /></button></span>
-            </div>
-          } @empty {
-            <span class="muted" style="font-size: 13px">No holidays added. Add Diwali, Holi, summer break and so on.</span>
-          }
-        </section>
+            <span class="muted" style="font-size: 13px">{{ s.holidays.length ? s.holidays.length + ' added' : 'None added yet' }} · one list for students and staff</span>
+          </span>
+          <app-icon name="chevron-right" [size]="18" />
+        </a>
 
         <section class="card stack" style="gap: 6px">
           <strong>Different timing</strong>
@@ -91,19 +90,6 @@ import { ToastService } from '../../shared/toast';
         </a>
       }
     </div>
-
-    @if (addingHoliday()) {
-      <app-bottom-sheet title="Add holiday" (closed)="addingHoliday.set(false)">
-        <div class="stack" style="gap: 14px">
-          <div class="field"><label class="label" for="hd-name">Name</label><input id="hd-name" class="input" maxlength="60" placeholder="e.g. Diwali break" [ngModel]="hName()" (ngModelChange)="hName.set($event)"></div>
-          <div class="row" style="gap: 10px">
-            <div class="field" style="flex: 1"><label class="label" for="hd-from">From</label><input id="hd-from" class="input" type="date" [ngModel]="hFrom()" (ngModelChange)="setHFrom($event)"></div>
-            <div class="field" style="flex: 1"><label class="label" for="hd-to">To</label><input id="hd-to" class="input" type="date" [min]="hFrom()" [ngModel]="hTo()" (ngModelChange)="hTo.set($event)"></div>
-          </div>
-          <button type="button" class="btn btn-primary lg block" [disabled]="busy()" (click)="addHoliday()">Add holiday</button>
-        </div>
-      </app-bottom-sheet>
-    }
 
     @if (timingFor(); as p) {
       <app-bottom-sheet [title]="p.name" (closed)="timingFor.set(null)">
@@ -136,10 +122,8 @@ export class StaffSettings {
   protected readonly off = signal<number[]>([0]);
   protected readonly busy = signal(false);
   protected readonly locating = signal(false);
-  protected readonly addingHoliday = signal(false);
-  protected readonly hName = signal('');
-  protected readonly hFrom = signal('');
-  protected readonly hTo = signal('');
+  /** How far from school a check-in is accepted. 300 m suits most schools (phone GPS is often 50–100 m off indoors). */
+  protected readonly radiusChoices = [100, 200, 300, 500, 1000];
   protected readonly timingFor = signal<StaffTiming | null>(null);
   protected readonly pStart = signal('');
   protected readonly pEnd = signal('');
@@ -153,6 +137,11 @@ export class StaffSettings {
   protected readonly timingChanged = computed(() => {
     const s = this.s();
     return !!s && (s.start !== this.start() || s.end !== this.end() || [...s.weeklyOff].sort().join() !== [...this.off()].sort().join());
+  });
+  /** The usual choices, plus the current value if the school has an unusual one. */
+  protected readonly radiusOptions = computed(() => {
+    const now = this.s()?.radius;
+    return now && !this.radiusChoices.includes(now) ? [...this.radiusChoices, now].sort((a, b) => a - b) : this.radiusChoices;
   });
   protected readonly lateAfter = computed(() => {
     const [h, m] = this.start().split(':').map(Number) as [number, number];
@@ -169,10 +158,6 @@ export class StaffSettings {
     this.start.set(s.start);
     this.end.set(s.end);
     this.off.set([...s.weeklyOff]);
-  }
-
-  protected dates(from: string, to: string): string {
-    return datesLabel(from, to);
   }
 
   protected toggleOff(n: number): void {
@@ -216,23 +201,9 @@ export class StaffSettings {
     );
   }
 
-  protected setHFrom(v: string): void {
-    this.hFrom.set(v);
-    if (!this.hTo() || this.hTo() < v) this.hTo.set(v);
-  }
-
-  protected addHoliday(): void {
-    this.run(this.svc.addHoliday(this.hName(), this.hFrom(), this.hTo()), 'Holiday added', () => {
-      this.addingHoliday.set(false);
-      this.hName.set('');
-      this.hFrom.set('');
-      this.hTo.set('');
-    });
-  }
-
-  protected deleteHoliday(id: string, name: string): void {
-    if (!confirm(`Delete the holiday “${name}”?`)) return;
-    this.run(this.svc.deleteHoliday(id), 'Holiday deleted');
+  protected setRadius(value: string): void {
+    const radius = Number(value);
+    if (radius && radius !== this.s()?.radius) this.run(this.svc.saveRadius(radius), `Check-in distance set to ${radius} m`);
   }
 
   protected openTiming(p: StaffTiming): void {

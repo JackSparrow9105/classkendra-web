@@ -37,6 +37,21 @@
       }
     </div>
 
+    @if (outbox.count() > 0) {
+      <div class="note warn outbox-note" role="status">
+        <app-icon name="clock" [size]="18" />
+        <span>
+          {{ (outbox.count() === 1 ? '1 register is waiting to be sent' : '{n} registers are waiting to be sent') | t: { n: outbox.count() } }}
+          @if (waitingToSend()) { · {{ 'this one too' | t }} }
+        </span>
+        <button type="button" class="btn btn-ghost sm" [disabled]="outbox.sending()" (click)="sendNow()">{{ (outbox.sending() ? 'Sending…' : 'Send now') | t }}</button>
+      </div>
+    }
+
+    @if (holiday(); as h) {
+      <div class="note"><app-icon name="info" [size]="18" /><span>{{ 'Holiday' | t }}: {{ h }}. {{ 'You can still mark an extra class, but parents are not alerted.' | t }}</span></div>
+    }
+
     <div class="grid-2">
       <div class="count-card ok"><span>{{ 'Present' | t }}</span><strong>{{ presentCount() }}</strong></div>
       <div class="count-card warn"><span>{{ 'Absent' | t }}</span><strong>{{ absentCount() }}</strong></div>

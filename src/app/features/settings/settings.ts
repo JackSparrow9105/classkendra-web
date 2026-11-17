@@ -62,6 +62,8 @@ export class Settings {
       { path: '/batches', icon: 'cap', title: l.groups, sub: school ? 'Add classes and sections' : 'Add, rename or change timings' },
       { path: '/fees/setup', icon: 'wallet', title: 'Fees and reminders', sub: 'Fee types, amounts, due date, reminder rules' },
       { path: '/students/import', icon: 'upload', title: 'Import students', sub: 'Upload a list or send us your register' },
+      { path: '/holidays', icon: 'calendar-check', title: 'Holidays', sub: 'No absent alerts or fee reminders on these days' },
+      { path: '/downloads', icon: 'download', title: 'Download to Excel', sub: 'Day-book, receipts, fees, students — and all your data' },
     ];
     if (!this.auth.isOwner()) return office;
     return [
@@ -73,6 +75,7 @@ export class Settings {
         sub: school ? 'At the start of the new session' : 'Move a whole batch or mark it finished',
       },
       { path: '/staff', icon: 'user-plus', title: 'Staff and teachers', sub: 'Who can sign in and what they can do' },
+      { path: '/activity', icon: 'clock', title: 'Activity log', sub: 'Cancelled payments, students who left, waived fees: who and why' },
       { path: '/plans', icon: 'crown', title: 'Plan and billing', sub: 'Trial, plans and message usage' },
     ];
   });

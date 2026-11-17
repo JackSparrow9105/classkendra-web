@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
-import { MessageLog, MessageStatus, MessageSummary, MessageType } from '../models/models';
+import { MessageLog, MessageStatus, MessageSummary, MessageType, Paged } from '../models/models';
 import { ApiService } from './api.service';
 
 export interface MessageFilter {
@@ -31,6 +31,11 @@ export class MessageService {
       .filter((m) => !q || m.recipientName.toLowerCase().includes(q) || m.phone.includes(q) || m.text.toLowerCase().includes(q))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return this.mock.respond(rows.slice(0, 200), 200);
+  }
+
+  /** GET /messages/page — newest first with the total, so the screen can offer "Show more" (real API only). */
+  page(filter: MessageFilter = {}, pageSize = 50): Observable<Paged<MessageLog>> {
+    return this.api.get<Paged<MessageLog>>('messages/page', { ...filter, page: 1, pageSize });
   }
 
   /** GET /messages/summary?days=30 */

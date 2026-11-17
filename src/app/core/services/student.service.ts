@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
-import { Concession, PromotionRequest, PromotionResult, Student, StudentImportRow } from '../models/models';
+import { Concession, PromotionRunView, StudentAttendance, StudentLeaveRequest, StudentLeaveResult, UndoPromotionResult, PromotionRequest, PromotionResult, Student, StudentImportRow, StudentPage } from '../models/models';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
@@ -16,6 +16,8 @@ export type StudentInput = Omit<Student, 'id' | 'active' | 'concessions' | 'admi
   isNewAdmission?: boolean;
   /** Create, new admissions only: don't charge this student the admission fee. */
   waiveAdmissionFee?: boolean;
+  /** Edit, when the batch changes: true = this month's unpaid fees are charged at the new batch's amounts. */
+  chargeNewBatchThisMonth?: boolean;
 };
 
 export interface ImportResult {
@@ -44,6 +46,42 @@ export class StudentService {
       .filter((s) => !q || s.name.toLowerCase().includes(q) || s.parentPhone.includes(q))
       .sort((a, b) => a.name.localeCompare(b.name));
     return this.mock.respond(rows, 150);
+  }
+
+  /**
+   * GET /students/page — the Students screen, 50 at a time (real API only).
+   * status: Active (default) or Left. kind: new admissions of this session, existing, or '' for all.
+   */
+  page(filter: { batchId?: string; search?: string; kind?: 'new' | 'existing' | ''; status?: 'Active' | 'Left' | 'All'; page?: number; pageSize?: number } = {}): Observable<StudentPage> {
+    return this.api.get<StudentPage>('students/page', filter);
+  }
+
+  /**
+   * POST /students/{id}/leave — marks the student as left. Nothing is deleted. Fees for months after the
+   * leaving month are removed; earlier unpaid fees stay owed unless `dues` is 'Waive'.
+   */
+  leave(id: string, req: StudentLeaveRequest): Observable<StudentLeaveResult> {
+    return this.api.post<StudentLeaveResult>(`students/${id}/leave`, req);
+  }
+
+  /** GET /students/{id}/attendance?month=yyyy-MM — teachers too, for their own classes. */
+  attendance(id: string, month?: string): Observable<StudentAttendance> {
+    return this.api.get<StudentAttendance>(`students/${id}/attendance`, { month });
+  }
+
+  /** GET /students/promotions — promotions of the last 60 days (owner). */
+  promotions(): Observable<PromotionRunView[]> {
+    return this.api.get<PromotionRunView[]>('students/promotions');
+  }
+
+  /** POST /students/promotions/{id}/undo — within 7 days; students paid for since are left as they are. */
+  undoPromotion(id: string): Observable<UndoPromotionResult> {
+    return this.api.post<UndoPromotionResult>(`students/promotions/${id}/undo`, {});
+  }
+
+  /** POST /students/{id}/rejoin — brings back a student who left (also the undo for a mistake). */
+  rejoin(id: string, batchId?: string): Observable<Student> {
+    return this.api.post<Student>(`students/${id}/rejoin`, { batchId: batchId ?? null });
   }
 
   /** GET /students/{id} */

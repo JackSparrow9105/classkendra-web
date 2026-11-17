@@ -5,6 +5,7 @@ import { Batch, Student } from '../../core/models/models';
 import { LabelService } from '../../core/labels';
 import { I18nService, TPipe } from '../../core/i18n/i18n.service';
 import { AttendanceService } from '../../core/services/attendance.service';
+import { OfflineAttendanceService } from '../../core/services/offline-attendance.service';
 import { AuthService } from '../../core/services/auth.service';
 import { StaffAttendanceService } from '../../core/services/staff-attendance.service';
 import { BatchService } from '../../core/services/batch.service';
@@ -31,6 +32,10 @@ export class Attendance {
   protected readonly auth = inject(AuthService);
   protected readonly staffAtt = inject(StaffAttendanceService);
   private readonly i18n = inject(I18nService);
+  /** Registers saved on this phone while offline, waiting to be sent. */
+  protected readonly outbox = inject(OfflineAttendanceService);
+  /** This register is saved on the phone but not sent yet. */
+  protected readonly waitingToSend = computed(() => !!this.outbox.waiting().find((i) => i.batchId === this.batchId() && i.date === this.date()));
 
   protected readonly today = isoDate();
   protected readonly date = signal(this.today);
@@ -39,6 +44,8 @@ export class Attendance {
   protected readonly students = signal<Student[]>([]);
   protected readonly absent = signal<Set<string>>(new Set());
   protected readonly saved = signal(false);
+  /** Set when the chosen day is a holiday (Settings › Holidays): no absent alerts are sent. */
+  protected readonly holiday = signal<string | null>(null);
   protected readonly dirty = signal(false);
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
@@ -51,6 +58,7 @@ export class Attendance {
     const n = this.absentCount();
     const t = (k: string, p?: Record<string, number>) => this.i18n.t(k, p);
     if (this.saved() && !this.dirty()) return t('Saved');
+    if (this.holiday()) return t('Save');
     return n === 0 ? t('Save · everyone present') : n === 1 ? t('Save · alert 1 parent') : t('Save · alert {n} parents', { n });
   });
 
@@ -88,6 +96,17 @@ export class Attendance {
   }
 
   protected save(): void {
+    const batchName = this.batches().find((b) => b.id === this.batchId())?.name ?? '';
+    const keepOnPhone = () => {
+      this.outbox.add({ batchId: this.batchId(), batchName, date: this.date(), absentStudentIds: [...this.absent()] });
+      this.busy.set(false);
+      this.saved.set(true);
+      this.dirty.set(false);
+      this.toast.show(this.i18n.t('No internet. Saved on this phone; it will be sent when you are back online.'));
+    };
+    // No connection: keep it on the phone straight away instead of waiting for the request to fail.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return keepOnPhone();
+
     this.busy.set(true);
     this.attendance.save(this.batchId(), this.date(), [...this.absent()]).subscribe({
       next: (res) => {
@@ -102,10 +121,15 @@ export class Attendance {
         );
       },
       error: (err) => {
+        if (OfflineAttendanceService.isOffline(err)) return keepOnPhone();
         this.busy.set(false);
         this.toast.show(errorMessage(err));
       },
     });
+  }
+
+  protected sendNow(): void {
+    this.outbox.sync();
   }
 
   private load(): void {
@@ -116,8 +140,11 @@ export class Attendance {
     ]).subscribe({
       next: ([students, sheet]) => {
         this.students.set(students);
-        this.absent.set(new Set(sheet.absentStudentIds));
-        this.saved.set(sheet.saved);
+        // A copy saved on this phone and not sent yet is newer than the server's.
+        const waiting = this.outbox.find(this.batchId(), this.date());
+        this.absent.set(new Set(waiting ? waiting.absentStudentIds : sheet.absentStudentIds));
+        this.saved.set(sheet.saved || !!waiting);
+        this.holiday.set(sheet.holidayName ?? null);
         this.dirty.set(false);
         this.loading.set(false);
       },

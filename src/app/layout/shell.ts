@@ -1,9 +1,11 @@
+import { OfflineAttendanceService } from '../core/services/offline-attendance.service';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 import { CentreService } from '../core/services/centre.service';
 import { Icon, IconName } from '../shared/icon';
 import { TPipe } from '../core/i18n/i18n.service';
+import { StudentSearch } from '../shared/student-search';
 
 interface NavItem {
   path: string;
@@ -13,13 +15,15 @@ interface NavItem {
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, TPipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, TPipe, StudentSearch],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
 export class Shell {
   protected readonly centre = inject(CentreService);
+  /** Started here so waiting registers are sent from any page. */
+  protected readonly outbox = inject(OfflineAttendanceService);
   protected readonly auth = inject(AuthService);
 
   /** Teachers only mark attendance and see their students; owner and office staff get everything. */

@@ -134,3 +134,26 @@
     text-decoration: none;
   }
 }
+
+.outbox-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 16px 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--warn-tint);
+  color: var(--warn-dark);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.top-search {
+  max-width: 640px;
+  margin: 12px 16px 0;
+}
+@media (min-width: 960px) {
+  .top-search { margin: 20px 32px 0; }
+}

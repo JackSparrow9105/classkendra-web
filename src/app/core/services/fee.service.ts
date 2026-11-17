@@ -5,7 +5,14 @@ import { MockDb, MockState } from '../mock/mock-db';
 import {
   FeeDue,
   FeeDueView,
+  FeesPage,
+  FamilyMember,
+  FamilyPaymentRequest,
   FeeHead,
+  OpeningBalance,
+  UpcomingFee,
+  Refund,
+  RefundMode,
   FeeSettings,
   FeeSetupRequest,
   Payment,
@@ -77,6 +84,59 @@ export class FeeService {
       .filter((r) => !q || r.studentName.toLowerCase().includes(q) || r.batchName.toLowerCase().includes(q))
       .sort((a, b) => (b.pending > 0 ? 1 : 0) - (a.pending > 0 ? 1 : 0) || b.maxDaysLate - a.maxDaysLate || a.studentName.localeCompare(b.studentName));
     return this.mock.respond(rows, 200);
+  }
+
+  /** GET /fees/page — the Fees screen, 50 students at a time, with totals for everyone who matches (real API only). */
+  page(tab: FeeTab, search = '', month = monthKey(), batchId = '', page = 1, pageSize = 50): Observable<FeesPage> {
+    return this.api.get<FeesPage>('fees/page', { month, status: tab, search, batchId, page, pageSize });
+  }
+
+  /**
+   * POST /payments/{id}/cancel { reason } — owner or office staff. The payment is not deleted: it is marked
+   * cancelled with the reason, its money goes back on the fees, and the owner is told when staff do it.
+   */
+  cancelPayment(id: string, reason: string): Observable<PaymentView> {
+    return this.api.post<PaymentView>(`payments/${id}/cancel`, { reason });
+  }
+
+  /** GET /students/{id}/fees/upcoming — fees still to be raised this session, with due dates. */
+  upcoming(studentId: string): Observable<UpcomingFee[]> {
+    return this.api.get<UpcomingFee[]>(`students/${studentId}/fees/upcoming`);
+  }
+
+  /** POST /payments/{id}/restore { reason } — owner: a cancelled payment counts again (same receipt number). */
+  restorePayment(id: string, reason: string): Observable<PaymentView> {
+    return this.api.post<PaymentView>(`payments/${id}/restore`, { reason });
+  }
+
+  /** POST /payments/family — brothers and sisters paying together; one receipt per child, linked. */
+  recordFamily(req: FamilyPaymentRequest): Observable<PaymentView[]> {
+    return this.api.post<PaymentView[]>('payments/family', req);
+  }
+
+  /** GET /students/{id}/family — brothers and sisters (same parent phone) with what they owe. */
+  family(studentId: string): Observable<FamilyMember[]> {
+    return this.api.get<FamilyMember[]>(`students/${studentId}/family`);
+  }
+
+  /** POST /students/{id}/refunds — money given back, out of the student's advance. */
+  refund(studentId: string, req: { amount: number; mode: RefundMode; refundedOn: string; reason: string }): Observable<Refund> {
+    return this.api.post<Refund>(`students/${studentId}/refunds`, req);
+  }
+
+  /** POST /students/{id}/dues/{dueId}/waive — lower one fee. Money already paid above the new amount becomes advance. */
+  waive(studentId: string, dueId: string, amount: number, reason: string): Observable<FeeDueView> {
+    return this.api.post<FeeDueView>(`students/${studentId}/dues/${dueId}/waive`, { amount, reason });
+  }
+
+  /** POST /students/{id}/charges — an extra charge for this student (lab breakage, ID card…). */
+  addCharge(studentId: string, req: { name: string; amount: number; dueDate: string; reason: string }): Observable<FeeDueView> {
+    return this.api.post<FeeDueView>(`students/${studentId}/charges`, req);
+  }
+
+  /** PUT /students/{id}/opening-balance — previous dues and advance from before ClassKendra (0 removes). */
+  setOpening(studentId: string, previousDues: number, advancePaid: number, asOn: string): Observable<OpeningBalance> {
+    return this.api.put<OpeningBalance>(`students/${studentId}/opening-balance`, { previousDues, advancePaid, asOn });
   }
 
   /** GET /students/{id}/fees — every bill and receipt for the current session. */

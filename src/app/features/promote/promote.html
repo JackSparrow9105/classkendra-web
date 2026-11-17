@@ -6,12 +6,46 @@
     </div>
   </header>
 
+  @if (undoResult(); as u) {
+    <section class="card stack" style="gap: 8px">
+      <strong>Undone: {{ u.restored }} {{ u.restored === 1 ? 'student is' : 'students are' }} back in their old {{ labels.l().groupLower }}</strong>
+      @if (u.billsRemoved > 0) { <span class="muted">{{ u.billsRemoved }} fees raised for the new {{ labels.l().groupLower }} were removed.</span> }
+      @if (u.skipped.length) {
+        <span class="muted">Left as they are ({{ u.skipped.length }}):</span>
+        @for (s of u.skipped; track s.studentId) {
+          <span style="font-size: 13.5px"><a [routerLink]="['/students', s.studentId]">{{ s.name }}</a> · {{ s.reason }}</span>
+        }
+      }
+      <button type="button" class="btn btn-ghost sm" style="align-self: flex-start" (click)="undoResult.set(null)">OK</button>
+    </section>
+  }
+
+  @if (runs().length) {
+    <section class="card stack" style="gap: 8px">
+      <strong>Recent {{ labels.isSchool() ? 'promotions' : 'moves' }}</strong>
+      @for (r of runs(); track r.id) {
+        <div class="row" style="justify-content: space-between; gap: 8px; border-top: 1px solid var(--divider); padding-top: 8px">
+          <span class="stack" style="gap: 2px">
+            <span style="font-size: 14px">{{ when(r.createdAt) }} · {{ r.runBy }}</span>
+            <span class="muted" style="font-size: 12.5px">
+              {{ r.moved }} moved · {{ r.left }} leaving · {{ r.keptBack }} kept back
+              @if (r.undoneAt) { · undone by {{ r.undoneBy }} } @else if (r.canUndo && r.undoEndsOn) { · can be undone until {{ r.undoEndsOn.slice(8) }}/{{ r.undoEndsOn.slice(5, 7) }} }
+            </span>
+          </span>
+          @if (r.canUndo) {
+            <button type="button" class="btn btn-outline sm" [disabled]="undoing() !== null" (click)="undo(r)">{{ undoing() === r.id ? 'Undoing…' : 'Undo' }}</button>
+          }
+        </div>
+      }
+    </section>
+  }
+
   @if (result(); as r) {
     <section class="card done">
       <span class="done-icon"><app-icon name="check" [size]="28" [stroke]="2.4" /></span>
       <strong>New session is ready</strong>
       <span class="muted">{{ r.moved }} moved up · {{ r.left }} marked as leaving · {{ r.keptBack }} kept back</span>
-      <span class="muted small">Unpaid fees from last session stay with each student. Check fee amounts for the new session in Fees and reminders.</span>
+      <span class="muted small">Unpaid fees from last session stay with each student. Check fee amounts for the new session in Fees and reminders. Made a mistake? You can undo it below for 7 days.</span>
       <div class="row" style="gap: 10px; margin-top: 8px">
         <a routerLink="/students" class="btn btn-outline">See students</a>
         <a routerLink="/fees/setup" class="btn btn-primary">Check fees</a>

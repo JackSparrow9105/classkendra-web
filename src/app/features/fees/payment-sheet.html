@@ -1,41 +1,88 @@
 <app-bottom-sheet [title]="studentName()" (closed)="close()">
-  @if (receipt(); as r) {
+  @if (receipts().length) {
     <div class="done">
       <span class="done-icon"><app-icon name="check" [size]="28" [stroke]="2.4" /></span>
-      <strong class="done-amount">{{ rupees(r.amount) }} received</strong>
-      <span class="muted">Receipt {{ r.receiptNo }} · {{ r.mode }} · {{ niceDate(r.paidOn) }}</span>
-      @if (r.balanceAfter > 0) {
-        <span class="badge warn">{{ rupees(r.balanceAfter) }} still due</span>
-      } @else {
+      <strong class="done-amount">{{ rupees(totalReceived()) }} received</strong>
+      @for (r of receipts(); track r.id) {
+        <span class="muted">
+          @if (receipts().length > 1) { {{ r.studentName }} · }
+          Receipt {{ r.receiptNo }} · {{ r.mode }} · {{ niceDate(r.paidOn) }}
+        </span>
+        @if (advanceOf(r) > 0) {
+          <span class="badge ok">{{ rupees(advanceOf(r)) }} kept as advance</span>
+        } @else if (r.balanceAfter > 0) {
+          <span class="badge warn">{{ receipts().length > 1 ? r.studentName + ': ' : '' }}{{ rupees(r.balanceAfter) }} still due</span>
+        }
+      }
+      @if (receipts().length === 1 && receipts()[0].balanceAfter <= 0 && advanceOf(receipts()[0]) === 0) {
         <span class="badge ok">Nothing left to pay</span>
       }
-      <span class="muted small">The receipt is being sent to the parent on WhatsApp.</span>
+      <span class="muted small">{{ receipts().length > 1 ? 'Each child gets their own receipt on WhatsApp.' : 'The receipt is being sent to the parent on WhatsApp.' }}</span>
     </div>
-    <a class="btn btn-primary lg block" [routerLink]="['/receipts', r.id]" (click)="close()">View or print receipt</a>
+    @for (r of receipts(); track r.id) {
+      <a class="btn btn-primary lg block" [routerLink]="['/receipts', r.id]" (click)="close()">
+        {{ receipts().length > 1 ? 'Receipt for ' + r.studentName : 'View or print receipt' }}
+      </a>
+    }
     <button type="button" class="btn btn-outline lg block" (click)="close()">Done</button>
   } @else {
     @if (batchName()) { <span class="muted sub">{{ batchName() }}</span> }
 
-    @if (openDues().length === 0) {
+    @if (openDues().length === 0 && family().length === 0 && !advanceOnly()) {
       <div class="note ok"><app-icon name="check" [size]="18" [stroke]="2.2" /> All paid</div>
+      <button type="button" class="btn btn-outline block" (click)="startAdvance()">Take money in advance</button>
     } @else {
-      <div class="lines" role="group" aria-label="Fees to pay">
-        @for (d of openDues(); track d.id) {
-          <label class="line">
-            <input type="checkbox" [checked]="ticked().has(d.id)" (change)="toggle(d.id)">
-            <span class="line-text">
-              <strong>{{ d.headName }}</strong>
-              <span>
-                {{ d.periodLabel }} ·
-                @if (d.daysLate > 0) { <em class="late">{{ d.daysLate }} days late</em> } @else { due {{ niceDate(d.dueDate) }} }
+      @if (openDues().length > 0) {
+        <div class="lines" role="group" aria-label="Fees to pay">
+          @for (d of openDues(); track d.id) {
+            <label class="line">
+              <input type="checkbox" [checked]="ticked().has(d.id)" (change)="toggle(d.id)">
+              <span class="line-text">
+                <strong>{{ d.headName }}</strong>
+                <span>
+                  {{ d.periodLabel }} ·
+                  @if (d.daysLate > 0) { <em class="late">{{ d.daysLate }} days late</em> } @else { due {{ niceDate(d.dueDate) }} }
+                </span>
+                @if (d.paidAmount > 0) { <span class="part">{{ rupees(d.paidAmount) }} of {{ rupees(d.amount) }} paid</span> }
+                @if (d.discount > 0) { <span class="disc">{{ rupees(d.discount) }} discount applied</span> }
               </span>
-              @if (d.paidAmount > 0) { <span class="part">{{ rupees(d.paidAmount) }} of {{ rupees(d.amount) }} paid</span> }
-              @if (d.discount > 0) { <span class="disc">{{ rupees(d.discount) }} discount applied</span> }
-            </span>
-            <strong>{{ rupees(d.balance) }}</strong>
-          </label>
-        }
-      </div>
+              <strong>{{ rupees(d.balance) }}</strong>
+            </label>
+          }
+        </div>
+      } @else if (advanceOnly()) {
+        <div class="note"><app-icon name="info" [size]="18" /><span>Nothing is due. The money is kept as advance and used on {{ studentName() }}'s next fees.</span></div>
+      }
+
+      @if (family().length > 0) {
+        <section class="family">
+          <span class="label">Brothers and sisters · pay together</span>
+          @for (m of family(); track m.studentId) {
+            <div class="family-child">
+              <label class="line child-head">
+                <input type="checkbox" [checked]="childTicked(m)" (change)="toggleChild(m)">
+                <span class="line-text">
+                  <strong>{{ m.name }}</strong>
+                  <span>{{ m.batchName }}@if (!m.active) { · left }</span>
+                </span>
+                <strong>{{ rupees(m.balance) }}</strong>
+              </label>
+              @if (childTicked(m) || m.dues.some(d => ticked().has(d.id))) {
+                @for (d of m.dues; track d.id) {
+                  <label class="line sub-line">
+                    <input type="checkbox" [checked]="ticked().has(d.id)" (change)="toggle(d.id)">
+                    <span class="line-text">
+                      <strong>{{ d.headName }}</strong>
+                      <span>{{ d.periodLabel }}@if (d.daysLate > 0) { · <em class="late">{{ d.daysLate }} days late</em> }</span>
+                    </span>
+                    <strong>{{ rupees(d.balance) }}</strong>
+                  </label>
+                }
+              }
+            </div>
+          }
+        </section>
+      }
 
       <form class="stack" (ngSubmit)="save()" novalidate>
         <div class="field">
@@ -45,10 +92,16 @@
             <input id="pay-amount" name="amount" type="text" inputmode="numeric"
                    [placeholder]="tickedBalance().toString()" [ngModel]="amountText()" (ngModelChange)="setAmount($event)">
           </div>
-          @if (isPart()) {
-            <span class="hint warn-text">Part payment: {{ rupees(tickedBalance() - amount()) }} will stay due.</span>
-          } @else {
-            <span class="hint muted">Full amount {{ rupees(tickedBalance()) }}. Enter less for a part payment.</span>
+          @if (extra() > 0 && !isFamily()) {
+            <label class="row keep-extra">
+              <input type="checkbox" name="keepExtra" [ngModel]="keepExtra()" (ngModelChange)="keepExtra.set($event)">
+              <span>Keep the extra {{ rupees(extra()) }} as advance</span>
+            </label>
+            @if (keepExtra()) { <span class="hint muted">{{ extraText() }}</span> }
+          } @else if (isPart()) {
+            <span class="hint warn-text">Part payment: {{ rupees(tickedBalance() - amount()) }} will stay due{{ isFamily() ? ' (oldest fees are paid first)' : '' }}.</span>
+          } @else if (tickedBalance() > 0) {
+            <span class="hint muted">Full amount {{ rupees(tickedBalance()) }}{{ isFamily() ? ' for the family' : '' }}. Enter less for a part payment.</span>
           }
         </div>
 
@@ -73,11 +126,13 @@
         @if (error()) { <span class="error-text" role="alert">{{ error() }}</span> }
 
         <button type="submit" class="btn btn-primary lg block" [disabled]="saving() || amount() <= 0">
-          {{ saving() ? 'Saving…' : 'Record ' + rupees(amount()) + (isPart() ? ' (part)' : '') }}
+          {{ saving() ? 'Saving…' : 'Record ' + rupees(amount()) + (isPart() ? ' (part)' : '') + (isFamily() ? ' for the family' : '') }}
         </button>
-        <button type="button" class="btn btn-outline lg block" (click)="remind()">
-          <app-icon name="whatsapp" [size]="18" /> Send reminder instead
-        </button>
+        @if (openDues().length > 0) {
+          <button type="button" class="btn btn-outline lg block" (click)="remind()">
+            <app-icon name="whatsapp" [size]="18" /> Send reminder instead
+          </button>
+        }
       </form>
     }
 

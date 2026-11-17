@@ -74,4 +74,10 @@
       </article>
     }
   </div>
+
+  @if (hasMore()) {
+    <button type="button" class="btn btn-outline block" (click)="more()">Show more · {{ rows().length }} / {{ total() }}</button>
+  } @else if (total() > rows().length) {
+    <p class="muted" style="text-align: center; font-size: 13px">Showing the newest {{ rows().length }} of {{ total() }}. Search by name or number to find an older message.</p>
+  }
 </div>

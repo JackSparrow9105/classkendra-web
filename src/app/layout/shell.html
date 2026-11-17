@@ -44,6 +44,13 @@
 </aside>
 
 <main class="content">
+  <div class="top-search"><app-student-search /></div>
+  @if (outbox.count() > 0) {
+    <a routerLink="/attendance" class="outbox-chip" role="status">
+      <app-icon name="clock" [size]="16" />
+      {{ (outbox.count() === 1 ? '1 register is waiting to be sent' : '{n} registers are waiting to be sent') | t: { n: outbox.count() } }}
+    </a>
+  }
   <router-outlet />
 </main>
 

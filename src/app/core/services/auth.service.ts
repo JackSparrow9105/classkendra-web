@@ -250,6 +250,7 @@ export class AuthService {
 
   logout(): void {
     this.forgetDevice();
+    clearOfflineCache();
     this.remove(PIN_RESET_KEY);
     this.pinReset.set(false);
     this.clearAll();
@@ -482,4 +483,18 @@ export function pinProblem(pin: string): string | null {
   if ('0123456789'.includes(pin) || '9876543210'.includes(pin))
     return "Choose a PIN that isn't 1234 or 4321 style.";
   return null;
+}
+
+/**
+ * The service worker keeps the last lists of classes, students and registers so attendance opens without internet
+ * (ngsw-config.json › "attendance-offline"). Signing out removes that copy so the next person on this phone can't see it.
+ * Registers waiting to be sent stay: they are sent only when the person who saved them signs in again.
+ */
+function clearOfflineCache(): void {
+  try {
+    if (typeof caches === 'undefined') return;
+    caches.keys().then((keys) => keys.filter((k) => k.includes('attendance-offline')).forEach((k) => caches.delete(k)));
+  } catch {
+    /* nothing cached */
+  }
 }
