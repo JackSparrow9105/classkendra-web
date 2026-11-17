@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, centreGuard, guestGuard, lockedGuard, officeGuard, ownerGuard, signedInGuard, teacherGuard } from './core/guards/guards';
+import { authGuard, centreGuard, guestGuard, lockedGuard, officeGuard, ownerGuard, signedInGuard, staffMemberGuard, teacherGuard } from './core/guards/guards';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -42,6 +42,12 @@ export const routes: Routes = [
       { path: 'promote', canActivate: [ownerGuard], loadComponent: () => import('./features/promote/promote').then((m) => m.Promote) },
       { path: 'staff', canActivate: [ownerGuard], loadComponent: () => import('./features/staff/staff').then((m) => m.Staff) },
       { path: 'plans', canActivate: [ownerGuard], loadComponent: () => import('./features/plans/plans').then((m) => m.Plans) },
+      { path: 'me/attendance', canActivate: [staffMemberGuard], loadComponent: () => import('./features/staff-attendance/my-attendance').then((m) => m.MyAttendance) },
+      { path: 'me/leave', canActivate: [staffMemberGuard], loadComponent: () => import('./features/staff-attendance/my-leave').then((m) => m.MyLeave) },
+      { path: 'staff-attendance', canActivate: [ownerGuard], loadComponent: () => import('./features/staff-attendance/staff-today').then((m) => m.StaffToday) },
+      { path: 'staff-attendance/leaves', canActivate: [ownerGuard], loadComponent: () => import('./features/staff-attendance/staff-leaves').then((m) => m.StaffLeaves) },
+      { path: 'staff-attendance/report', canActivate: [ownerGuard], loadComponent: () => import('./features/staff-attendance/staff-report').then((m) => m.StaffReportPage) },
+      { path: 'staff-attendance/settings', canActivate: [ownerGuard], loadComponent: () => import('./features/staff-attendance/staff-settings').then((m) => m.StaffSettings) },
       { path: 'settings', loadComponent: () => import('./features/settings/settings').then((m) => m.Settings) },
     ],
   },

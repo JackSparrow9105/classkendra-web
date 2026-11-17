@@ -109,6 +109,53 @@
     </section>
   }
 
+  <!-- Staff notifications (owner, schools with staff attendance): leave requests and answers -->
+  @if (auth.isOwner() && staffNotify(); as n) {
+    <section class="card card--list" aria-labelledby="staff-notify-title">
+      <h2 class="label msg-title" id="staff-notify-title">{{ 'Staff notifications' | t }}</h2>
+      <div class="pref-row">
+        <span class="pref-label">
+          {{ 'Leave requests' | t }}
+          <span class="muted pref-sub">{{ 'To you, when a teacher or office staff applies' | t }}</span>
+        </span>
+        <div class="seg compact" role="radiogroup" [attr.aria-label]="'Leave requests' | t">
+          <button type="button" role="radio" [class.on]="n.notifyLeaveRequests" [attr.aria-checked]="n.notifyLeaveRequests" (click)="setStaffNotify('notifyLeaveRequests', true)">{{ 'On' | t }}</button>
+          <button type="button" role="radio" [class.on]="!n.notifyLeaveRequests" [attr.aria-checked]="!n.notifyLeaveRequests" (click)="setStaffNotify('notifyLeaveRequests', false)">{{ 'Off' | t }}</button>
+        </div>
+      </div>
+      <div class="pref-row">
+        <span class="pref-label">
+          {{ 'Leave answers' | t }}
+          <span class="muted pref-sub">{{ 'To the teacher, when you approve or reject' | t }}</span>
+        </span>
+        <div class="seg compact" role="radiogroup" [attr.aria-label]="'Leave answers' | t">
+          <button type="button" role="radio" [class.on]="n.notifyLeaveAnswers" [attr.aria-checked]="n.notifyLeaveAnswers" (click)="setStaffNotify('notifyLeaveAnswers', true)">{{ 'On' | t }}</button>
+          <button type="button" role="radio" [class.on]="!n.notifyLeaveAnswers" [attr.aria-checked]="!n.notifyLeaveAnswers" (click)="setStaffNotify('notifyLeaveAnswers', false)">{{ 'Off' | t }}</button>
+        </div>
+      </div>
+      <div class="pref-row pref-row--stacked">
+        <span class="pref-label">
+          {{ 'Also send on WhatsApp' | t }}
+          <span class="muted pref-sub">{{ 'App notifications are free. WhatsApp reaches people who haven’t allowed notifications, and uses your WhatsApp messages.' | t }}</span>
+        </span>
+        <div class="seg compact" role="radiogroup" [attr.aria-label]="'Also send on WhatsApp' | t">
+          <button type="button" role="radio" [class.on]="n.leaveWhatsApp" [attr.aria-checked]="n.leaveWhatsApp" (click)="setStaffNotify('leaveWhatsApp', true)">{{ 'On' | t }}</button>
+          <button type="button" role="radio" [class.on]="!n.leaveWhatsApp" [attr.aria-checked]="!n.leaveWhatsApp" (click)="setStaffNotify('leaveWhatsApp', false)">{{ 'Off' | t }}</button>
+        </div>
+      </div>
+      @if (push.shouldAsk()) {
+        <button type="button" class="list-row link-row" style="width: 100%; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; text-align: left" (click)="allowPush()">
+          <span class="avatar accent"><app-icon name="bell" [size]="18" /></span>
+          <span class="list-main">
+            <span class="list-title">{{ 'Allow notifications on this phone' | t }}</span>
+            <span class="list-sub">{{ 'So leave requests reach you here' | t }}</span>
+          </span>
+          <app-icon name="chevron-right" [size]="18" />
+        </button>
+      }
+    </section>
+  }
+
   <!-- Admission numbers (owner only): A-2026-0045 style, or continue the school's own register -->
   @if (auth.isOwner() && numbering(); as n) {
     <section class="card card--list adm-card" aria-labelledby="adm-no-title">

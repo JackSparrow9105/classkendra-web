@@ -6,6 +6,7 @@ import { LabelService } from '../../core/labels';
 import { I18nService, TPipe } from '../../core/i18n/i18n.service';
 import { AttendanceService } from '../../core/services/attendance.service';
 import { AuthService } from '../../core/services/auth.service';
+import { StaffAttendanceService } from '../../core/services/staff-attendance.service';
 import { BatchService } from '../../core/services/batch.service';
 import { StudentService } from '../../core/services/student.service';
 import { initials, isoDate, longDate } from '../../shared/format';
@@ -28,6 +29,7 @@ export class Attendance {
   private readonly route = inject(ActivatedRoute);
   protected readonly labels = inject(LabelService);
   protected readonly auth = inject(AuthService);
+  protected readonly staffAtt = inject(StaffAttendanceService);
   private readonly i18n = inject(I18nService);
 
   protected readonly today = isoDate();
@@ -53,6 +55,7 @@ export class Attendance {
   });
 
   constructor() {
+    if (this.auth.isOwner()) this.staffAtt.status().subscribe({ error: () => undefined });
     this.batchService.list().subscribe((list) => {
       this.batches.set(list);
       // ?batch=<id> (from the teacher's Home) opens that register; otherwise the first batch.

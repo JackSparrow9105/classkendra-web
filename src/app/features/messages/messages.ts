@@ -35,6 +35,8 @@ export class Messages {
     Receipt: 'file',
     StaffInvite: 'user-plus',
     Admission: 'cap',
+    LeaveRequest: 'calendar-check',
+    LeaveAnswer: 'calendar-check',
   };
 
   protected readonly type = signal<MessageType | ''>('');

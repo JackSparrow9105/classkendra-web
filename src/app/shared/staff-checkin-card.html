@@ -1,0 +1,66 @@
+@if (enabled() && data(); as d) {
+  <section class="card checkin" aria-labelledby="checkin-title">
+    <div class="ci-head">
+      <h2 id="checkin-title">Your attendance today</h2>
+      @switch (d.status) {
+        @case ('Present') { <span class="badge ok"><app-icon name="check" [size]="12" [stroke]="2.6" /> On time</span> }
+        @case ('Late') { <span class="badge warn">Late {{ d.lateMinutes }} min</span> }
+        @case ('Leave') { <span class="badge accent">On leave</span> }
+        @case ('Holiday') { <span class="badge hol">Holiday</span> }
+        @case ('WeeklyOff') { <span class="badge">Weekly off</span> }
+        @case ('Absent') { <span class="badge bad">Absent</span> }
+        @default { <span class="badge">Not checked in</span> }
+      }
+    </div>
+
+    @if (!working()) {
+      <p class="muted ci-note">
+        @if (d.status === 'Holiday') { Today is a holiday: {{ d.holidayName }}. Enjoy! }
+        @else if (d.status === 'WeeklyOff') { Today is your weekly off. }
+        @else { You're on approved leave today. }
+      </p>
+    } @else if (checkedIn()) {
+      <div class="ci-times">
+        <div><span class="ci-k">Checked in</span><b>{{ clockLabel(d.checkInAt) }}</b></div>
+        <div><span class="ci-k">Checked out</span><b [class.muted]="!d.checkOutAt">{{ d.checkOutAt ? clockLabel(d.checkOutAt) : '—' }}</b></div>
+      </div>
+      @if (d.markedByOwner) { <span class="muted ci-note">Marked by the principal.</span> }
+      <button type="button" class="btn btn-outline block" [disabled]="busy()" (click)="checkOut()">
+        <app-icon name="logout" [size]="18" /> {{ d.checkOutAt ? 'Check out again' : 'Check out' }}
+      </button>
+      @if (!d.checkOutAt) { <span class="muted ci-note">Check out when you leave school. The time is only recorded.</span> }
+    } @else {
+      <div class="ci-line">
+        <span class="row" style="gap: 6px"><app-icon name="clock" [size]="16" /> {{ timeLabel(d.start) }} – {{ timeLabel(d.end) }}</span>
+        <span class="muted">Late after {{ timeLabel(d.lateAfter) }}</span>
+      </div>
+      @if (locError()) {
+        <div class="ci-alert" role="alert"><app-icon name="pin" [size]="18" /><span>{{ locError() }}</span></div>
+      } @else if (away() !== null) {
+        @if (tooFar()) {
+          <div class="ci-alert" role="status"><app-icon name="pin" [size]="18" /><span><b>You're {{ away() }} m from school.</b> Check in when you reach.</span></div>
+        } @else {
+          <span class="ci-ok"><app-icon name="pin" [size]="16" /> You're at school · {{ away() }} m away</span>
+        }
+      } @else if (d.schoolLat === null) {
+        <span class="muted ci-note">The principal hasn't set the school location yet.</span>
+      }
+      <button type="button" class="btn btn-primary lg block" [disabled]="busy() || d.schoolLat === null" (click)="checkIn()">
+        <app-icon name="check" [size]="20" [stroke]="2.6" /> {{ busy() ? 'Checking location…' : 'Check in' }}
+      </button>
+      <span class="muted ci-note">Works at school only. No smartphone today? The principal can mark you.</span>
+    }
+
+    <div class="ci-month">
+      <span><b class="ok-t">{{ d.month.present }}</b> on time</span>
+      <span><b class="warn-t">{{ d.month.late }}</b> late</span>
+      <span><b class="acc-t">{{ d.month.leave }}</b> leave</span>
+      <span><b class="bad-t">{{ d.month.absent }}</b> absent</span>
+    </div>
+    <div class="row ci-links">
+      <a routerLink="/me/attendance" class="btn btn-ghost sm"><app-icon name="calendar-check" [size]="16" /> My attendance</a>
+      <a routerLink="/me/leave" class="btn btn-ghost sm"><app-icon name="file" [size]="16" /> Apply for leave</a>
+    </div>
+  </section>
+  <app-push-prompt />
+}

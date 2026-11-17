@@ -6,7 +6,9 @@ import { MockDb } from '../../core/mock/mock-db';
 import { LabelService } from '../../core/labels';
 import { I18nService, TPipe } from '../../core/i18n/i18n.service';
 import { InstallService } from '../../core/install.service';
-import { AbsentAlertMode, AdmissionNoStyle, AdmissionNumbering, Lang } from '../../core/models/models';
+import { AbsentAlertMode, AdmissionNoStyle, AdmissionNumbering, Lang, StaffAttendanceSettings } from '../../core/models/models';
+import { PushNotificationsService } from '../../core/services/push-notifications.service';
+import { StaffAttendanceService } from '../../core/services/staff-attendance.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CentreService, logoUrl } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
@@ -95,8 +97,46 @@ export class Settings {
   protected readonly admBusy = signal(false);
   protected readonly year = new Date().getFullYear();
 
+  /** Settings → Staff notifications (schools with staff attendance). */
+  protected readonly push = inject(PushNotificationsService);
+  private readonly staffAtt = inject(StaffAttendanceService);
+  protected readonly staffNotify = signal<Pick<StaffAttendanceSettings, 'notifyLeaveRequests' | 'notifyLeaveAnswers' | 'leaveWhatsApp'> | null>(null);
+
+  protected setStaffNotify(key: 'notifyLeaveRequests' | 'notifyLeaveAnswers' | 'leaveWhatsApp', on: boolean): void {
+    const n = this.staffNotify();
+    if (!n || n[key] === on) return;
+    const next = { ...n, [key]: on };
+    this.staffNotify.set(next);
+    this.staffAtt.saveNotifications(next.notifyLeaveRequests, next.notifyLeaveAnswers, next.leaveWhatsApp).subscribe({
+      next: (s) => {
+        this.staffNotify.set({ notifyLeaveRequests: s.notifyLeaveRequests, notifyLeaveAnswers: s.notifyLeaveAnswers, leaveWhatsApp: s.leaveWhatsApp });
+        this.toast.show('Saved');
+      },
+      error: (e) => {
+        this.staffNotify.set(n);
+        this.toast.show(errorMessage(e));
+      },
+    });
+  }
+
+  protected async allowPush(): Promise<void> {
+    const ok = await this.push.enable();
+    this.toast.show(ok ? 'Notifications are on' : this.push.permission() === 'denied' ? 'Notifications are blocked. Allow them in your browser settings.' : "Couldn't turn on notifications on this phone");
+  }
+
   constructor() {
     this.centre.load().subscribe();
+    if (this.auth.isOwner())
+      this.staffAtt.status(true).subscribe({
+        next: (a) => {
+          if (!a.enabled) return;
+          this.staffAtt.settings().subscribe({
+            next: (s) => this.staffNotify.set({ notifyLeaveRequests: s.notifyLeaveRequests, notifyLeaveAnswers: s.notifyLeaveAnswers, leaveWhatsApp: s.leaveWhatsApp }),
+            error: () => undefined,
+          });
+        },
+        error: () => undefined,
+      });
     if (this.auth.isOwner()) this.centre.admissionNumbering().subscribe({ next: (n) => this.showNumbering(n), error: () => undefined });
   }
 

@@ -67,3 +67,9 @@ export const teacherGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   return auth.isTeacher() ? true : inject(Router).parseUrl('/dashboard');
 };
+
+/** A teacher's or office staff member's own attendance and leave. The owner doesn't check in. */
+export const staffMemberGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.isOwner() ? inject(Router).parseUrl('/staff-attendance') : true;
+};

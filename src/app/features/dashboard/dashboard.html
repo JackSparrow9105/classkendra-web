@@ -16,6 +16,8 @@
     </div>
   </header>
 
+  @if (auth.role() === 'Staff') { <app-staff-checkin-card /> }
+
   @if (data(); as d) {
     @if (!setupDone()) {
       <section class="card get-started" aria-labelledby="gs-title">

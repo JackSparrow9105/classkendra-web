@@ -1,0 +1,153 @@
+<div class="page">
+  <header class="page-head">
+    <div class="stack" style="gap: 2px">
+      <span class="muted" style="font-size: 13px">Teachers and office staff</span>
+      <h1 class="page-title">Attendance</h1>
+    </div>
+    @if (locked() === null) {
+      <a routerLink="/staff-attendance/settings" class="icon-btn" aria-label="Staff attendance settings"><app-icon name="settings" /></a>
+    }
+  </header>
+
+  <div class="seg" role="tablist" aria-label="Attendance of">
+    <a routerLink="/attendance" role="tab" aria-selected="false">Students</a>
+    <span class="on" role="tab" aria-selected="true">Staff</span>
+  </div>
+
+  @if (locked() === 'Plan') {
+    <section class="card locked">
+      <span class="badge accent"><app-icon name="crown" [size]="12" /> School 200 and above</span>
+      <strong style="font-size: 17px">Staff attendance</strong>
+      <span class="muted">Teachers check in from their phone at school, late arrivals are marked automatically, leave is applied and approved in the app, and you get a monthly report.</span>
+      <a routerLink="/plans" class="btn btn-primary">See plans</a>
+    </section>
+  } @else if (locked() === 'NotSchool') {
+    <section class="card locked">
+      <strong>Staff attendance is for schools.</strong>
+      <span class="muted">It isn't available for coaching and tuition centres yet.</span>
+    </section>
+  } @else {
+    @if (noLocation()) {
+      <a class="note warn" routerLink="/staff-attendance/settings" style="text-decoration: none">
+        <app-icon name="pin" [size]="18" />
+        <span><b>Set the school location</b> so teachers can check in. Open settings while you're at school.</span>
+      </a>
+    }
+
+    <div class="month-nav">
+      <button type="button" class="icon-btn" aria-label="Previous day" (click)="shift(-1)"><app-icon name="chevron-left" /></button>
+      <span style="display: flex; flex-direction: column; align-items: center">
+        <b>{{ dateTitle() }}</b>
+        @if (data(); as d) { <span class="muted" style="font-size: 12px">School {{ timeLabel(d.start) }} – {{ timeLabel(d.end) }}</span> }
+      </span>
+      <button type="button" class="icon-btn" aria-label="Next day" [disabled]="date() === today" (click)="shift(1)"><app-icon name="chevron-right" /></button>
+    </div>
+
+    <div class="row" style="gap: 8px; flex-wrap: wrap">
+      <a routerLink="/staff-attendance/leaves" class="btn btn-outline sm">
+        Leave requests @if (pendingLeaves() > 0) { <span class="badge warn">{{ pendingLeaves() }}</span> }
+      </a>
+      <a routerLink="/staff-attendance/report" class="btn btn-outline sm"><app-icon name="chart" [size]="16" /> Monthly report</a>
+    </div>
+
+    @if (data(); as d) {
+      @if (d.dayType !== 'Working') {
+        <div class="note"><app-icon name="info" [size]="18" /><span>{{ d.dayType === 'Holiday' ? 'Holiday: ' + d.holidayName : 'Weekly off' }}. Nobody is marked absent.</span></div>
+      }
+      @if (d.rows.length === 0) {
+        <section class="card locked">
+          <strong>No teachers or office staff yet</strong>
+          <span class="muted">Add them in Staff. They check in from their own phones.</span>
+          <a routerLink="/staff" class="btn btn-primary">Add staff</a>
+        </section>
+      } @else {
+        <div class="counts">
+          <div><b class="ok-t">{{ counts().in }}</b><span>In</span></div>
+          <div><b class="warn-t">{{ counts().late }}</b><span>Late</span></div>
+          <div><b>{{ date() === today ? counts().notYet : counts().absent }}</b><span>{{ date() === today ? 'Not in yet' : 'Absent' }}</span></div>
+          <div><b class="acc-t">{{ counts().leave }}</b><span>On leave</span></div>
+        </div>
+
+        @if (groups().notYet.length) {
+          <p class="section-label">{{ date() === today ? 'Not in yet' : 'Absent' }}</p>
+          <section class="card card--list">
+            @for (r of groups().notYet; track r.userId) {
+              <div class="list-row">
+                <span class="avatar">{{ initials(r.name) }}</span>
+                <div class="list-main"><span class="list-title">{{ r.name }}</span><span class="list-sub">{{ rowSub(r) }}</span></div>
+                @if (r.status === 'Absent') { <span class="badge bad">Absent</span> }
+                <button type="button" class="btn btn-outline sm" (click)="open(r)">Mark</button>
+              </div>
+            }
+          </section>
+        }
+
+        @if (groups().inRows.length) {
+          <p class="section-label">Checked in</p>
+          <section class="card card--list">
+            @for (r of groups().inRows; track r.userId) {
+              <button type="button" class="list-row row-btn" (click)="open(r)">
+                <span class="avatar">{{ initials(r.name) }}</span>
+                <span class="list-main"><span class="list-title">{{ r.name }}</span><span class="list-sub">{{ rowSub(r) }}{{ r.markedByOwner ? ' · marked by you' : '' }}</span></span>
+                @if (r.status === 'Late') { <span class="badge warn">Late {{ r.lateMinutes }} min</span> } @else { <span class="badge ok">On time</span> }
+              </button>
+            }
+          </section>
+        }
+
+        @if (groups().leave.length) {
+          <p class="section-label">On leave</p>
+          <section class="card card--list">
+            @for (r of groups().leave; track r.userId) {
+              <button type="button" class="list-row row-btn" (click)="open(r)">
+                <span class="avatar">{{ initials(r.name) }}</span>
+                <span class="list-main"><span class="list-title">{{ r.name }}</span><span class="list-sub">{{ rowSub(r) }}</span></span>
+                <span class="badge accent">Leave</span>
+              </button>
+            }
+          </section>
+        }
+
+        @if (groups().other.length) {
+          <p class="section-label">Off today</p>
+          <section class="card card--list">
+            @for (r of groups().other; track r.userId) {
+              <div class="list-row">
+                <span class="avatar">{{ initials(r.name) }}</span>
+                <div class="list-main"><span class="list-title">{{ r.name }}</span><span class="list-sub">{{ rowSub(r) }}</span></div>
+                <span class="badge">{{ statusLabel[r.status] || 'Not joined yet' }}</span>
+              </div>
+            }
+          </section>
+        }
+      }
+    }
+  }
+</div>
+
+@if (editing(); as r) {
+  <app-bottom-sheet [title]="r.name" (closed)="editing.set(null)">
+    <div class="stack" style="gap: 14px">
+      <span class="muted" style="margin-top: -8px">{{ dateTitle() }} · {{ r.role === 'Teacher' ? 'Teacher' : 'Office' }}</span>
+      <div class="mark-grid" role="radiogroup" aria-label="Attendance">
+        @for (s of ['Present', 'Late', 'Absent', 'Leave']; track s) {
+          <button type="button" class="btn btn-outline" role="radio" [class.on]="markStatus() === s" [attr.aria-checked]="markStatus() === s"
+                  (click)="markStatus.set($any(s))">{{ s }}</button>
+        }
+      </div>
+      @if (markStatus() === 'Present' || markStatus() === 'Late') {
+        <div class="field">
+          <label class="label" for="mk-time">Arrived at <span class="muted" style="font-weight: 400">optional</span></label>
+          <input id="mk-time" class="input" type="time" [ngModel]="markTime()" (ngModelChange)="markTime.set($event)">
+        </div>
+      }
+      <span class="muted" style="font-size: 12px">Shows as “marked by you” in the report. Use it for someone without a phone, or who forgot to check in.</span>
+      <div class="row" style="gap: 10px">
+        @if (r.markedByOwner) {
+          <button type="button" class="btn btn-ghost" [disabled]="busy()" (click)="clear()">Undo</button>
+        }
+        <button type="button" class="btn btn-primary lg" style="flex: 1" [disabled]="busy()" (click)="save()">Save</button>
+      </div>
+    </div>
+  </app-bottom-sheet>
+}

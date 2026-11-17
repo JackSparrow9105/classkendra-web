@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { StaffCheckinCard } from '../../shared/staff-checkin-card';
 import { TeacherDashboard } from '../../core/models/models';
 import { TPipe } from '../../core/i18n/i18n.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -19,7 +20,7 @@ type ClassState = 'done' | 'next' | 'later' | 'missed';
 /** A teacher's home screen: today's classes, who keeps missing class, and how each batch is doing. No money. */
 @Component({
   selector: 'app-teacher-home',
-  imports: [RouterLink, TPipe],
+  imports: [RouterLink, TPipe, StaffCheckinCard],
   templateUrl: './teacher-home.html',
   styleUrl: './teacher-home.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

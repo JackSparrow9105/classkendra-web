@@ -11,6 +11,13 @@
     </label>
   </header>
 
+  @if (auth.isOwner() && staffAtt.availability()?.reason !== 'NotSchool' && staffAtt.availability()) {
+    <div class="seg" role="tablist" aria-label="Attendance of">
+      <span class="on" role="tab" aria-selected="true">Students</span>
+      <a routerLink="/staff-attendance" role="tab" aria-selected="false">Staff</a>
+    </div>
+  }
+
   @if (batches().length === 0 && !loading()) {
     <div class="card stack" style="align-items: flex-start">
       @if (auth.isTeacher()) {

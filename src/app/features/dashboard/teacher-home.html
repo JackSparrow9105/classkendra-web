@@ -13,6 +13,8 @@
     <a routerLink="/attendance" class="btn btn-primary head-btn">{{ 'Mark attendance' | t }}</a>
   </header>
 
+  <app-staff-checkin-card />
+
   @if (data(); as d) {
     @if (d.batchCount === 0) {
       <section class="card empty">

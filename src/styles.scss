@@ -608,7 +608,9 @@ select.input {
   padding: 4px;
   border-radius: var(--radius);
 
-  button {
+  button,
+  > a,
+  > span {
     height: 38px;
     border: none;
     border-radius: var(--radius-sm);
@@ -617,6 +619,10 @@ select.input {
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
 
     &.on {
       background: var(--surface);
@@ -748,4 +754,17 @@ select.input {
   .action-bar {
     left: 248px;
   }
+}
+
+/* A whole list row that is a button (opens a sheet). */
+.list-row.row-btn {
+  width: 100%;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }

@@ -410,7 +410,7 @@ export interface PromotionResult {
 
 /* ---------- WhatsApp message log ---------- */
 
-export type MessageType = 'FeeReminder' | 'AbsentAlert' | 'Receipt' | 'StaffInvite' | 'Admission';
+export type MessageType = 'FeeReminder' | 'AbsentAlert' | 'Receipt' | 'StaffInvite' | 'Admission' | 'LeaveRequest' | 'LeaveAnswer';
 export type MessageStatus = 'Queued' | 'Sent' | 'Delivered' | 'Read' | 'Failed';
 
 /** One row per WhatsApp message (the Notifications outbox). Status comes from the provider's delivery webhook. */
@@ -506,4 +506,151 @@ export interface TeacherDashboard {
       days: { date: string; scheduled: boolean; present: number | null; students: number }[];
     }[];
   };
+}
+
+// ---------------- Staff attendance (schools, School 200 and above) ----------------
+
+/** Present, Late, Absent, Leave, Holiday, WeeklyOff, NotYet (today, school not over), Upcoming, None (before joining). */
+export type StaffDayStatus = 'Present' | 'Late' | 'Absent' | 'Leave' | 'Holiday' | 'WeeklyOff' | 'NotYet' | 'Upcoming' | 'None';
+
+export interface StaffAvailability {
+  enabled: boolean;
+  /** Why not: not a school, or a plan below School 200. */
+  reason: 'NotSchool' | 'Plan' | null;
+}
+
+export interface StaffCounts {
+  present: number;
+  late: number;
+  leave: number;
+  absent: number;
+}
+
+export interface StaffDay {
+  date: string;
+  status: StaffDayStatus;
+  /** ISO time (UTC) */
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  lateMinutes: number;
+  markedByOwner: boolean;
+  /** Holiday name */
+  note: string | null;
+}
+
+/** The check-in card for a teacher or office staff member. */
+export interface MyStaffToday {
+  date: string;
+  /** "07:30" — the person's own timing, or the school's */
+  start: string;
+  end: string;
+  lateAfter: string;
+  status: StaffDayStatus;
+  holidayName: string | null;
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  lateMinutes: number;
+  markedByOwner: boolean;
+  schoolLat: number | null;
+  schoolLng: number | null;
+  radius: number;
+  month: StaffCounts;
+}
+
+export interface StaffMonth {
+  month: string;
+  days: StaffDay[];
+  counts: StaffCounts;
+}
+
+export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
+export interface LeaveRequest {
+  id: string;
+  userId: string;
+  name: string;
+  role: 'Teacher' | 'Staff';
+  from: string;
+  to: string;
+  /** Working days in the range */
+  days: number;
+  reason: string;
+  status: LeaveStatus;
+  rejectReason: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+  /** Owner's list only: approved leave days this session */
+  takenThisSession: number | null;
+}
+
+export interface StaffTodayRow {
+  userId: string;
+  name: string;
+  role: 'Teacher' | 'Staff';
+  status: StaffDayStatus;
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  lateMinutes: number;
+  markedByOwner: boolean;
+  start: string;
+  end: string;
+}
+
+export interface StaffToday {
+  date: string;
+  dayType: 'Working' | 'Holiday' | 'WeeklyOff';
+  holidayName: string | null;
+  start: string;
+  end: string;
+  rows: StaffTodayRow[];
+}
+
+export type StaffMarkStatus = 'Present' | 'Late' | 'Absent' | 'Leave' | 'Clear';
+
+export interface StaffReportRow {
+  userId: string;
+  name: string;
+  role: 'Teacher' | 'Staff';
+  counts: StaffCounts;
+  days: StaffDay[];
+}
+
+export interface StaffReport {
+  month: string;
+  from: string;
+  to: string;
+  workingDays: number;
+  holidays: number;
+  rows: StaffReportRow[];
+}
+
+export interface StaffHoliday {
+  id: string;
+  name: string;
+  from: string;
+  to: string;
+}
+
+export interface StaffTiming {
+  userId: string;
+  name: string;
+  role: 'Teacher' | 'Staff';
+  /** null = the school's timing */
+  start: string | null;
+  end: string | null;
+}
+
+export interface StaffAttendanceSettings {
+  start: string;
+  end: string;
+  graceMinutes: number;
+  latitude: number | null;
+  longitude: number | null;
+  radius: number;
+  /** 0 = Sunday … 6 = Saturday */
+  weeklyOff: number[];
+  holidays: StaffHoliday[];
+  staff: StaffTiming[];
+  notifyLeaveRequests: boolean;
+  notifyLeaveAnswers: boolean;
+  leaveWhatsApp: boolean;
 }

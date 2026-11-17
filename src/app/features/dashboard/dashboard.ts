@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { StaffCheckinCard } from '../../shared/staff-checkin-card';
 import { environment } from '../../../environments/environment';
 import { DashboardSummary, StudentFees } from '../../core/models/models';
 import { MockDb } from '../../core/mock/mock-db';
 import { LabelService } from '../../core/labels';
+import { AuthService } from '../../core/services/auth.service';
 import { CentreService } from '../../core/services/centre.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { FeeService } from '../../core/services/fee.service';
@@ -14,7 +16,7 @@ import { TPipe } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, Icon, TPipe],
+  imports: [RouterLink, Icon, TPipe, StaffCheckinCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
@@ -25,6 +27,7 @@ export class Dashboard {
   private readonly toast = inject(ToastService);
   private readonly mock = inject(MockDb);
   protected readonly centre = inject(CentreService);
+  protected readonly auth = inject(AuthService);
   protected readonly labels = inject(LabelService);
 
   protected readonly data = signal<DashboardSummary | null>(null);

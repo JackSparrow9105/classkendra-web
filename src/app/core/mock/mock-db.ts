@@ -250,7 +250,12 @@ export class MockDb {
 
     s.feeSettings = { dueDay: 5, sessionStartMonth: 4, remindBefore: true, remindOnDue: true, remindAfter: true };
     s.staff = isSchool
-      ? [{ id: 'st_1', name: 'Kavita Mishra', phone: '9811100001', role: 'Teacher', batchIds: ['b_5A', 'b_5B'] }]
+      ? [
+          { id: 'st_1', name: 'Kavita Mishra', phone: '9811100001', role: 'Teacher', batchIds: ['b_5A', 'b_5B'] },
+          { id: 'st_2', name: 'Rakesh Verma', phone: '9811100002', role: 'Teacher', batchIds: ['b_8A'] },
+          { id: 'st_3', name: 'Neha Joshi', phone: '9811100003', role: 'Teacher', batchIds: ['b_10A'] },
+          { id: 'st_4', name: 'Pooja Mehta', phone: '9811100004', role: 'Staff', batchIds: [] },
+        ]
       : [];
     s.dues = [];
     s.payments = [];
