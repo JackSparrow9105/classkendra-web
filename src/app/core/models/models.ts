@@ -65,6 +65,9 @@ export interface Centre {
   absentAlerts?: AbsentAlertMode;
   /** WhatsApp admission confirmation to the parent when a student is added (default on). */
   sendAdmissionMessages?: boolean;
+  /** Demo only (the API keeps these in its own tables): admission number style and the next number. */
+  admissionNoStyle?: AdmissionNoStyle;
+  admissionNextNumber?: number;
 }
 
 export type AbsentAlertMode = 'Every' | 'TwoDays' | 'Off';
@@ -97,8 +100,10 @@ export interface Student {
   optionalHeadIds: string[];
   /** Discounts this student gets. In SQL this is its own StudentConcessions table. */
   concessions: Concession[];
-  /** "A-2026-0045", given when the student is added. Missing for students added before admissions. */
+  /** "A-2026-0045", "1251" or the school's own register number. */
   admissionNo?: string | null;
+  /** true = admitted through ClassKendra (admission fee, one-time fees, WhatsApp confirmation); false = was already studying here. */
+  isNewAdmission?: boolean;
   /** Only in the reply to POST /students: was the WhatsApp admission confirmation sent? */
   admissionMessageSent?: boolean | null;
 }
@@ -127,6 +132,18 @@ export interface FeeHead {
   optional: boolean;
   /** batchId -> amount in rupees. A batch with no amount (or 0) is not charged this head. */
   amounts: Record<string, number>;
+  /** The admission fee: one-time, charged only to new admissions (at most one). */
+  admissionFee?: boolean;
+}
+
+/** Settings → Admission numbers. "Session" = A-2026-0045, "Serial" = 1251, 1252… (the school's register). */
+export type AdmissionNoStyle = 'Session' | 'Serial';
+export interface AdmissionNumbering {
+  style: AdmissionNoStyle;
+  /** The number the next new student gets. */
+  nextNumber: number;
+  /** What the next number looks like: "A-2026-0047" or "1251". */
+  example: string;
 }
 
 export interface FeeSettings {
@@ -372,6 +389,8 @@ export interface StudentImportRow {
   name: string;
   parentPhone: string;
   batchName: string;
+  /** Optional: the student's number in the school register. */
+  admissionNo?: string;
 }
 
 /* ---------- Promotion to the next class ---------- */

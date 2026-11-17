@@ -236,3 +236,25 @@
 .part-note {
   font-size: 11px;
 }
+
+.adm-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  .seg {
+    flex-shrink: 0;
+    min-width: 128px;
+  }
+}
+
+.adm-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: 16px;
+  }
+}

@@ -40,7 +40,9 @@
         <button type="button" class="btn btn-outline lg block" (click)="print()">
           <app-icon name="file" [size]="18" /> Print or save as PDF
         </button>
-        @if (d.student.admissionNo && !messageSent()) {
+        @if (!d.student.isNewAdmission) {
+          <!-- Existing student: no admission confirmation. -->
+        } @else if (d.student.admissionNo && !messageSent()) {
           <button type="button" class="btn btn-ghost block" [disabled]="resending()" (click)="resend()">
             {{ resending() ? 'Sending…' : 'Send WhatsApp confirmation' }}
           </button>

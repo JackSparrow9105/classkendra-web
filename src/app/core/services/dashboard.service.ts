@@ -145,7 +145,7 @@ export class DashboardService {
       .sort((a, b) => (a.startTime ?? '99').localeCompare(b.startTime ?? '99'));
 
     return {
-      newThisMonth: active.filter((x) => x.joinedOn.startsWith(month)).length,
+      newThisMonth: active.filter((x) => x.isNewAdmission && x.joinedOn.startsWith(month)).length, // new admissions only
       overdue: overdueDues.reduce((t, d) => t + balance(d), 0),
       overdueCount: new Set(overdueDues.map((d) => d.studentId)).size,
       digitalSharePct: collected ? Math.round((digital / collected) * 100) : 0,

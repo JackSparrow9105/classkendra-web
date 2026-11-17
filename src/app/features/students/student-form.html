@@ -2,7 +2,7 @@
   <header class="page-head">
     <div class="row">
       <a [routerLink]="isEdit() ? ['/students', id()] : '/students'" class="icon-btn" aria-label="Back"><app-icon name="chevron-left" /></a>
-      <h1 class="page-title">{{ isEdit() ? 'Edit student' : 'Add student' }}</h1>
+      <h1 class="page-title">{{ isEdit() ? 'Edit student' : isNew() ? 'New admission' : 'Existing student' }}</h1>
     </div>
     @if (addedCount() > 0) {
       <span class="badge ok">{{ addedCount() }} added</span>
@@ -15,6 +15,20 @@
       <span>Add a {{ labels.l().groupLower }} first, then you can add students to it. <a routerLink="/batches">{{ labels.l().addGroup }}</a></span>
     </div>
   }
+
+  <div class="kind">
+    <div class="seg" role="radiogroup" aria-label="Type of student">
+      <button type="button" role="radio" [class.on]="isNew()" [attr.aria-checked]="isNew()" (click)="setKind('new')">New admission</button>
+      <button type="button" role="radio" [class.on]="!isNew()" [attr.aria-checked]="!isNew()" (click)="setKind('existing')">Existing student</button>
+    </div>
+    <span class="muted kind-note">
+      @if (isNew()) {
+        Joining now. Gets an admission number{{ admissionHead() ? ', the admission fee' : '' }} and a WhatsApp confirmation to the parent.
+      } @else {
+        Already studying here before you started ClassKendra. No admission fee and no WhatsApp message.
+      }
+    </span>
+  </div>
 
   <div class="card stack" style="gap: 14px">
     <div class="field">
@@ -57,10 +71,33 @@
         @if (invalid('batchId')) { <span class="error-text">Choose a {{ labels.l().groupLower }}.</span> }
       </div>
       <div class="field">
-        <label class="label" for="s-joined">Joined on</label>
+        <label class="label" for="s-joined">{{ isNew() ? 'Admission date' : 'Studying here since' }}</label>
         <input id="s-joined" class="input" type="date" formControlName="joinedOn">
       </div>
     </div>
+
+    <div class="field">
+      <label class="label" for="s-admno">Admission no. <span class="muted" style="font-weight: 400">{{ isNew() || isEdit() ? 'optional' : 'from your register' }}</span></label>
+      <input id="s-admno" class="input" formControlName="admissionNo" autocomplete="off" [class.invalid]="invalid('admissionNo')"
+             [placeholder]="isEdit() ? savedNo() : nextNo() ? 'Leave empty for ' + nextNo() : 'Leave empty to make one'">
+      @if (invalid('admissionNo')) { <span class="error-text">Use up to 20 letters, numbers, - / or .</span> }
+      @else if (!isEdit()) {
+        <span class="muted" style="font-size: 12px">
+          {{ isNew() ? 'Made automatically. Type one only if you use your own register.' : 'Type the number from your admission register, or leave it empty to make one.' }}
+        </span>
+      }
+    </div>
+
+    @if (isNew() && !isEdit() && admissionFee() > 0) {
+      <button type="button" class="switch-row adm-fee" role="switch" [attr.aria-checked]="chargeAdmissionFee()"
+              (click)="chargeAdmissionFee.set(!chargeAdmissionFee())">
+        <span class="adm-fee-text">
+          <strong>Admission fee {{ rupees(admissionFee()) }}</strong>
+          <span class="muted">{{ chargeAdmissionFee() ? 'Charged once, with the first bill' : 'Waived for this student' }}</span>
+        </span>
+        <span class="switch" [class.on]="chargeAdmissionFee()"></span>
+      </button>
+    }
 
     @if (availableOptional().length > 0) {
       <fieldset class="optional-fees">
@@ -85,8 +122,13 @@
         <app-icon name="trash" [size]="18" /> Remove student
       </button>
     } @else {
-      <button type="button" class="btn btn-primary lg block" [disabled]="busy()" (click)="save(true)">Save and add another</button>
-      <button type="submit" class="btn btn-outline lg block" [disabled]="busy()">Save and close</button>
+      @if (isNew()) {
+        <button type="submit" class="btn btn-primary lg block" [disabled]="busy()">Confirm admission</button>
+        <button type="button" class="btn btn-outline lg block" [disabled]="busy()" (click)="save(true)">Confirm and add another</button>
+      } @else {
+        <button type="button" class="btn btn-primary lg block" [disabled]="busy()" (click)="save(true)">Save and add another</button>
+        <button type="submit" class="btn btn-outline lg block" [disabled]="busy()">Save and close</button>
+      }
     }
   </div>
 </form>

@@ -6,7 +6,7 @@ import { MockDb } from '../../core/mock/mock-db';
 import { LabelService } from '../../core/labels';
 import { I18nService, TPipe } from '../../core/i18n/i18n.service';
 import { InstallService } from '../../core/install.service';
-import { AbsentAlertMode, Lang } from '../../core/models/models';
+import { AbsentAlertMode, AdmissionNoStyle, AdmissionNumbering, Lang } from '../../core/models/models';
 import { AuthService } from '../../core/services/auth.service';
 import { CentreService, logoUrl } from '../../core/services/centre.service';
 import { errorMessage } from '../../core/interceptors/auth.interceptor';
@@ -88,8 +88,51 @@ export class Settings {
     phone: new FormControl('', { nonNullable: true, validators: [Validators.pattern(/^\s*\+?[0-9 ()-]{6,20}\s*$/)] }),
   });
 
+  /** Settings → Admission numbers. */
+  protected readonly numbering = signal<AdmissionNumbering | null>(null);
+  protected readonly admStyle = signal<AdmissionNoStyle>('Session');
+  protected readonly admNext = signal('');
+  protected readonly admBusy = signal(false);
+  protected readonly year = new Date().getFullYear();
+
   constructor() {
     this.centre.load().subscribe();
+    if (this.auth.isOwner()) this.centre.admissionNumbering().subscribe({ next: (n) => this.showNumbering(n), error: () => undefined });
+  }
+
+  private showNumbering(n: AdmissionNumbering): void {
+    this.numbering.set(n);
+    this.admStyle.set(n.style);
+    this.admNext.set(String(n.nextNumber));
+  }
+
+  protected setAdmNext(el: HTMLInputElement): void {
+    const digits = el.value.replace(/\D/g, '').slice(0, 7);
+    if (digits !== el.value) el.value = digits;
+    this.admNext.set(digits);
+  }
+
+  protected saveNumbering(): void {
+    const n = this.numbering();
+    const next = Number(this.admNext());
+    if (!next) {
+      this.toast.show('Enter the next admission number');
+      return;
+    }
+    this.admBusy.set(true);
+    // Switching style without touching the number: let the server pick (plain numbers continue after the highest in use).
+    const sendNext = n && this.admStyle() !== n.style && this.admNext() === String(n.nextNumber) ? undefined : next;
+    this.centre.setAdmissionNumbering(this.admStyle(), sendNext).subscribe({
+      next: (r) => {
+        this.admBusy.set(false);
+        this.showNumbering(r);
+        this.toast.show(`Next new student gets ${r.example}`);
+      },
+      error: (e) => {
+        this.admBusy.set(false);
+        this.toast.show(errorMessage(e));
+      },
+    });
   }
 
   protected setAppLang(l: Lang): void {

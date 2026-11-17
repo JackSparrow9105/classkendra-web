@@ -22,7 +22,7 @@
         <h2 id="gs-title">{{ 'Finish setting up' | t }}</h2>
         <p class="page-sub">{{ 'Two quick steps and reminders start going out by themselves.' | t }}</p>
 
-        <a class="task" routerLink="/students/new" [class.done]="d.studentCount > 0">
+        <a class="task" routerLink="/students/import" [class.done]="d.studentCount > 0">
           <span class="task-icon">
             @if (d.studentCount > 0) { <app-icon name="check" [size]="18" [stroke]="2.2" /> } @else { 1 }
           </span>
@@ -131,7 +131,7 @@
             <span class="stat-label">{{ 'Active students' | t }}</span>
             <span class="tile-value">{{ d.studentCount }}</span>
             @if (i.newThisMonth > 0) {
-              <span class="stat-note ok-text">+{{ i.newThisMonth }} {{ 'new this month' | t }}</span>
+              <span class="stat-note ok-text">+{{ i.newThisMonth }} {{ 'new admissions this month' | t }}</span>
             } @else {
               <span class="stat-note">{{ 'No new admissions this month' | t }}</span>
             }

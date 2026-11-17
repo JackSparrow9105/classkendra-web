@@ -40,10 +40,13 @@ export function sessionLabel(sy: number): string {
 }
 
 /** Does a head with this frequency fall due in `monthKey`? `joinedMonth` is the student's joining month (YYYY-MM). */
-export function isDueIn(freq: FeeFrequency, monthKey: string, sessionStart: number, joinedMonth: string): boolean {
+export function isDueIn(freq: FeeFrequency, monthKey: string, sessionStart: number, joinedMonth: string, isNewAdmission = true): boolean {
   if (monthKey < joinedMonth) return false;
   const [, m] = parts(monthKey);
   const off = offset(m, sessionStart);
+  // Existing students (already studying before ClassKendra, and Excel imports) follow the regular schedule only:
+  // no one-time fees (admission fee) and no catch-up bill for the month they were added. Same rule as the API.
+  if (!isNewAdmission) joinedMonth = '';
   switch (freq) {
     case 'Monthly':
       return true;
@@ -54,7 +57,7 @@ export function isDueIn(freq: FeeFrequency, monthKey: string, sessionStart: numb
     case 'Yearly':
       return off === 0 || monthKey === joinedMonth;
     case 'OneTime':
-      return monthKey === joinedMonth;
+      return monthKey === joinedMonth; // new admissions only (joinedMonth is cleared above for existing students)
   }
 }
 

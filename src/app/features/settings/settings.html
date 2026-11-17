@@ -109,6 +109,38 @@
     </section>
   }
 
+  <!-- Admission numbers (owner only): A-2026-0045 style, or continue the school's own register -->
+  @if (auth.isOwner() && numbering(); as n) {
+    <section class="card card--list adm-card" aria-labelledby="adm-no-title">
+      <h2 class="label msg-title" id="adm-no-title">{{ 'Admission numbers' | t }}</h2>
+      <div class="pref-row pref-row--stacked">
+        <span class="pref-label">
+          {{ 'How numbers look' | t }}
+          <span class="muted pref-sub">{{ 'Already have an admission register? Continue its numbers.' | t }}</span>
+        </span>
+        <div class="seg compact" role="radiogroup" [attr.aria-label]="'How numbers look' | t">
+          <button type="button" role="radio" [class.on]="admStyle() === 'Session'" [attr.aria-checked]="admStyle() === 'Session'" (click)="admStyle.set('Session')">A-{{ year }}-0001</button>
+          <button type="button" role="radio" [class.on]="admStyle() === 'Serial'" [attr.aria-checked]="admStyle() === 'Serial'" (click)="admStyle.set('Serial')">1, 2, 3…</button>
+        </div>
+      </div>
+      <div class="pref-row">
+        <label class="pref-label" for="adm-next">
+          {{ 'Next admission no.' | t }}
+          <span class="muted pref-sub">{{ admStyle() === 'Serial' ? ('e.g. 1251 if your register ends at 1250' | t) : ('Restarts at 1 every session' | t) }}</span>
+        </label>
+        <input id="adm-next" class="input adm-next" type="text" inputmode="numeric" [value]="admNext()"
+               (input)="setAdmNext($any($event.target))">
+      </div>
+      @if (admStyle() !== n.style || admNext() !== '' + n.nextNumber) {
+        <button type="button" class="btn btn-primary block adm-save" [disabled]="admBusy()" (click)="saveNumbering()">
+          {{ admBusy() ? ('Saving…' | t) : ('Save' | t) }}
+        </button>
+      } @else {
+        <span class="muted pref-sub adm-example">{{ 'Next new student gets' | t }} <strong>{{ n.example }}</strong></span>
+      }
+    </section>
+  }
+
   <!-- App PIN: asked after 10 minutes away instead of an OTP -->
   <section class="card card--list" aria-label="App PIN">
     @if (auth.hasPin()) {

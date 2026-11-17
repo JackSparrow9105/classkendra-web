@@ -7,9 +7,15 @@ import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
 /** Concessions are managed through their own endpoints, so they're not part of the student form. */
-export type StudentInput = Omit<Student, 'id' | 'active' | 'concessions' | 'admissionNo' | 'admissionMessageSent'> & {
+export type StudentInput = Omit<Student, 'id' | 'active' | 'concessions' | 'admissionNo' | 'admissionMessageSent' | 'isNewAdmission'> & {
   /** POST only: false = no WhatsApp admission confirmation for this student. */
   sendConfirmation?: boolean;
+  /** Typed from the register. Empty on create = made automatically; empty on edit = unchanged. */
+  admissionNo?: string;
+  /** Create: default true. false = existing student (no admission fee, one-time fees or WhatsApp). */
+  isNewAdmission?: boolean;
+  /** Create, new admissions only: don't charge this student the admission fee. */
+  waiveAdmissionFee?: boolean;
 };
 
 export interface ImportResult {
@@ -53,26 +59,52 @@ export class StudentService {
       (s) => s.active && s.parentPhone === input.parentPhone && s.name.toLowerCase() === input.name.toLowerCase(),
     );
     if (dup) return this.mock.fail(`${input.name} is already added with this number.`);
-    // Demo: admission number per session, like the API ("A-2026-0045").
-    const year = new Date(input.joinedOn || Date.now()).getFullYear();
-    const used = this.mock.snapshot.students
-      .map((x) => x.admissionNo ?? '')
-      .filter((no) => no.startsWith(`A-${year}-`))
-      .map((no) => Number(no.slice(7)) || 0);
-    const admissionNo = `A-${year}-${String(Math.max(40, ...used) + 1).padStart(4, '0')}`;
-    const student: Student = { id: this.mock.id('stu'), ...input, active: true, concessions: [], admissionNo };
+    const typed = (input.admissionNo ?? '').trim();
+    const taken = typed && this.mock.snapshot.students.find((x) => (x.admissionNo ?? '').toLowerCase() === typed.toLowerCase());
+    if (taken) return this.mock.fail(`Admission no. ${typed} is already given to ${taken.name}.`);
+
+    const { sendConfirmation, waiveAdmissionFee, admissionNo: _, isNewAdmission, ...fields } = input;
+    const isNew = isNewAdmission !== false;
+    const admissionHead = this.mock.snapshot.heads.find((h) => h.admissionFee);
+    const concessions: Concession[] =
+      isNew && waiveAdmissionFee && admissionHead
+        ? [{ id: this.mock.id('con'), reason: 'Other', note: 'Admission fee waived', feeHeadId: admissionHead.id, kind: 'Percent', value: 100 }]
+        : [];
+    const student: Student = {
+      id: this.mock.id('stu'), ...fields, active: true, concessions,
+      isNewAdmission: isNew, admissionNo: typed || this.nextAdmissionNo(input.joinedOn),
+    };
     this.mock.update((s) => s.students.push(student));
     this.mock.ensureDues();
-    const sent = this.mock.snapshot.centre?.sendAdmissionMessages !== false && input.sendConfirmation !== false;
+    const sent = isNew && this.mock.snapshot.centre?.sendAdmissionMessages !== false && sendConfirmation !== false;
     if (sent) this.logAdmission(student);
-    return this.mock.respond({ ...student, admissionMessageSent: sent });
+    return this.mock.respond({ ...student, admissionMessageSent: isNew ? sent : null });
+  }
+
+  /** Demo: next automatic admission number, like the API ("A-2026-0045" or "1251"), skipping numbers in use. */
+  private nextAdmissionNo(joinedOn?: string): string {
+    const c = this.mock.snapshot.centre;
+    const used = new Set(this.mock.snapshot.students.map((x) => (x.admissionNo ?? '').toLowerCase()));
+    if (c?.admissionNoStyle === 'Serial') {
+      const highest = Math.max(0, ...[...used].filter((n) => /^\d+$/.test(n)).map(Number));
+      let n = Math.max(c.admissionNextNumber ?? 1, highest + 1);
+      while (used.has(String(n))) n++;
+      this.mock.update((s) => s.centre && (s.centre.admissionNextNumber = n + 1));
+      return String(n);
+    }
+    const year = new Date(joinedOn || Date.now()).getFullYear();
+    const nums = [...used].filter((no) => no.startsWith(`a-${year}-`)).map((no) => Number(no.slice(7)) || 0);
+    let n = Math.max(c?.admissionNextNumber ? c.admissionNextNumber - 1 : 40, ...nums) + 1;
+    while (used.has(`a-${year}-${String(n).padStart(4, '0')}`)) n++;
+    this.mock.update((s) => s.centre && (s.centre.admissionNextNumber = n + 1));
+    return `A-${year}-${String(n).padStart(4, '0')}`;
   }
 
   /** POST /students/{id}/admission-message — send the WhatsApp admission confirmation again. */
   resendAdmission(id: string): Observable<{ sent: boolean }> {
     if (!environment.useMock) return this.api.post<{ sent: boolean }>(`students/${id}/admission-message`, {});
     const st = this.mock.snapshot.students.find((x) => x.id === id);
-    if (!st?.admissionNo) return this.mock.fail('This student has no admission number.');
+    if (!st?.admissionNo || st.isNewAdmission !== true) return this.mock.fail('Admission confirmations are only for new admissions.');
     this.logAdmission(st);
     return this.mock.respond({ sent: true });
   }
@@ -99,9 +131,20 @@ export class StudentService {
   /** PUT /students/{id} */
   update(id: string, input: StudentInput): Observable<Student> {
     if (!environment.useMock) return this.api.put<Student>(`students/${id}`, input);
+    const typed = (input.admissionNo ?? '').trim();
+    const taken = typed && this.mock.snapshot.students.find((x) => x.id !== id && (x.admissionNo ?? '').toLowerCase() === typed.toLowerCase());
+    if (taken) return this.mock.fail(`Admission no. ${typed} is already given to ${taken.name}.`);
+    const { sendConfirmation: _s, waiveAdmissionFee: _w, admissionNo: _a, ...fields } = input;
     let updated!: Student;
     this.mock.update((s) => {
-      s.students = s.students.map((st) => (st.id === id ? (updated = { ...st, ...input }) : st));
+      s.students = s.students.map((st) =>
+        st.id === id ? (updated = { ...st, ...fields, admissionNo: typed || st.admissionNo, isNewAdmission: input.isNewAdmission ?? st.isNewAdmission }) : st,
+      );
+      // Marked as an existing student after all: the unpaid admission fee goes too.
+      if (input.isNewAdmission === false) {
+        const admissionIds = new Set(s.heads.filter((h) => h.admissionFee).map((h) => h.id));
+        s.dues = s.dues.filter((d) => !(d.studentId === id && d.paidAmount === 0 && admissionIds.has(d.feeHeadId)));
+      }
       // Opted out of an optional fee (e.g. stopped using transport): cancel its unpaid dues.
       const optionalIds = new Set(s.heads.filter((h) => h.optional).map((h) => h.id));
       s.dues = s.dues.filter(
@@ -196,6 +239,8 @@ export class StudentService {
           active: true,
           optionalHeadIds: [],
           concessions: [],
+          isNewAdmission: false, // imported = already studying here
+          admissionNo: r.admissionNo?.trim() || this.nextAdmissionNo(),
         });
         result.added++;
         return;

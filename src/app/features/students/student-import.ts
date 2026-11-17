@@ -47,7 +47,7 @@ export class StudentImport {
 
   protected next(): void {
     const m = this.method();
-    if (m === 'manual') this.router.navigateByUrl('/students/new');
+    if (m === 'manual') this.router.navigate(['/students/new'], { queryParams: { type: 'existing' } });
     if (m === 'whatsapp') {
       const text = encodeURIComponent('Hi, please add my students to ClassKendra. Sending photos of my register.');
       window.open(`https://wa.me/${SUPPORT_WHATSAPP}?text=${text}`, '_blank', 'noopener');
@@ -99,7 +99,7 @@ export class StudentImport {
   }
 }
 
-/** Reads "Name, Parent phone, Batch" rows. Handles quoted cells and a header row in any column order. */
+/** Reads "Name, Parent phone, Batch[, Admission no]" rows. Handles quoted cells and a header row in any column order. */
 function parseCsv(text: string): StudentImportRow[] {
   const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
@@ -107,10 +107,12 @@ function parseCsv(text: string): StudentImportRow[] {
   const iName = header.findIndex((h) => h.includes('name') && !h.includes('parent'));
   const iPhone = header.findIndex((h) => /phone|mobile|whatsapp/.test(h));
   const iBatch = header.findIndex((h) => /batch|class/.test(h));
+  // Optional: the school register number ("Admission no", "Adm. no", "Registration no", "Scholar no").
+  const iAdm = header.findIndex((h) => /admission|adm\b|adm\.|registration|reg\.? ?no|scholar/.test(h));
   if (iName < 0 || iPhone < 0 || iBatch < 0) return [];
   return lines.slice(1).map((line) => {
     const c = splitCsvLine(line);
-    return { name: c[iName] ?? '', parentPhone: c[iPhone] ?? '', batchName: c[iBatch] ?? '' };
+    return { name: c[iName] ?? '', parentPhone: c[iPhone] ?? '', batchName: c[iBatch] ?? '', admissionNo: iAdm >= 0 ? (c[iAdm] ?? '').trim() : '' };
   });
 }
 

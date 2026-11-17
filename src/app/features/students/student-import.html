@@ -2,10 +2,10 @@
   <header class="page-head">
     <div class="row">
       <a routerLink="/students" class="icon-btn" aria-label="Back to students"><app-icon name="chevron-left" /></a>
-      <h1 class="page-title">Add students</h1>
+      <h1 class="page-title">Add existing students</h1>
     </div>
   </header>
-  <p class="page-sub" style="margin-top: -8px">We need each student's name, parent's WhatsApp number and {{ labels.l().groupLower }}.</p>
+  <p class="page-sub" style="margin-top: -8px">For students already studying here. We need each student's name, parent's WhatsApp number and {{ labels.l().groupLower }}. They are not charged an admission fee and parents get no message.</p>
 
   <div class="stack" role="radiogroup" aria-label="How do you want to add students?">
     @for (o of options; track o.id) {
@@ -35,7 +35,7 @@
           <input type="file" accept=".csv,.xlsx,.xls" (change)="onFile($event)">
           <app-icon name="file" [size]="26" />
           <strong>{{ fileName() || 'Choose a CSV file' }}</strong>
-          <span class="muted" style="font-size: 13px">Columns: Name, Parent phone, {{ labels.l().group }}</span>
+          <span class="muted" style="font-size: 13px">Columns: Name, Parent phone, {{ labels.l().group }}, Admission no (optional)</span>
         </label>
         <button type="button" class="btn btn-ghost sm" (click)="downloadSample()">Download sample file</button>
 
@@ -45,10 +45,10 @@
           <strong>{{ rows().length }} students found</strong>
           <div class="table-box">
             <table class="preview-table">
-              <thead><tr><th>Name</th><th>Parent phone</th><th>{{ labels.l().group }}</th></tr></thead>
+              <thead><tr><th>Name</th><th>Parent phone</th><th>{{ labels.l().group }}</th><th>Adm. no</th></tr></thead>
               <tbody>
                 @for (r of rows().slice(0, 5); track $index) {
-                  <tr><td>{{ r.name }}</td><td>{{ r.parentPhone }}</td><td>{{ r.batchName }}</td></tr>
+                  <tr><td>{{ r.name }}</td><td>{{ r.parentPhone }}</td><td>{{ r.batchName }}</td><td>{{ r.admissionNo || '—' }}</td></tr>
                 }
               </tbody>
             </table>

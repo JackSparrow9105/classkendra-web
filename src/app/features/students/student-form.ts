@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Batch, FeeHead } from '../../core/models/models';
 import { LabelService } from '../../core/labels';
 import { BatchService } from '../../core/services/batch.service';
+import { CentreService } from '../../core/services/centre.service';
 import { FeeService } from '../../core/services/fee.service';
 import { rupees } from '../../shared/format';
 import { StudentService } from '../../core/services/student.service';
@@ -30,6 +31,7 @@ export class StudentForm {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly fees = inject(FeeService);
+  private readonly centre = inject(CentreService);
   protected readonly labels = inject(LabelService);
   protected readonly rupees = rupees;
 
@@ -43,7 +45,24 @@ export class StudentForm {
 
   /** Route param; undefined on /students/new. */
   readonly id = input<string>();
+  /** ?type=existing opens the form for a student who was already studying here. */
+  readonly type = input<string>();
   protected readonly isEdit = computed(() => !!this.id());
+
+  /**
+   * New admission: admission number, admission fee and one-time fees, WhatsApp confirmation, admission screen.
+   * Existing student: was already studying here — their register number, no admission fee, no message.
+   */
+  protected readonly kind = signal<'new' | 'existing'>('new');
+  protected readonly isNew = computed(() => this.kind() === 'new');
+  /** The centre's admission fee (Fees setup), and its amount for the chosen batch/class. */
+  protected readonly admissionHead = signal<FeeHead | null>(null);
+  protected readonly admissionFee = computed(() => this.admissionHead()?.amounts[this.batchIdValue()] ?? 0);
+  protected readonly chargeAdmissionFee = signal(true);
+  /** What the next automatic number looks like ("A-2026-0047" / "1251"), for the placeholder. */
+  protected readonly nextNo = signal('');
+  /** The number the student had when the form opened (edit). */
+  protected readonly savedNo = signal('');
 
   protected readonly batches = signal<Batch[]>([]);
   protected readonly busy = signal(false);
@@ -59,11 +78,19 @@ export class StudentForm {
     parentPhone: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)] }),
     batchId: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     joinedOn: new FormControl(isoDate(), { nonNullable: true, validators: [Validators.required] }),
+    admissionNo: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(20), Validators.pattern(/^[A-Za-z0-9\-\/. ]*$/)] }),
   });
 
   constructor() {
     this.form.controls.batchId.valueChanges.subscribe((v) => this.batchIdValue.set(v));
-    this.fees.getSetup().subscribe((s) => this.optionalHeads.set(s.heads.filter((h) => h.optional)));
+    this.fees.getSetup().subscribe((s) => {
+      this.optionalHeads.set(s.heads.filter((h) => h.optional));
+      this.admissionHead.set(s.heads.find((h) => h.admissionFee) ?? null);
+    });
+    this.centre.admissionNumbering().subscribe({ next: (n) => this.nextNo.set(n.example), error: () => undefined });
+    effect(() => {
+      if (!this.id()) this.kind.set(this.type() === 'existing' ? 'existing' : 'new');
+    });
     this.batchService.list().subscribe((list) => {
       this.batches.set(list);
       if (!this.form.controls.batchId.value && list.length === 1) this.form.patchValue({ batchId: list[0]!.id });
@@ -77,7 +104,9 @@ export class StudentForm {
           this.router.navigateByUrl('/students');
           return;
         }
-        this.form.patchValue(s);
+        this.form.patchValue({ ...s, admissionNo: s.admissionNo ?? '' });
+        this.savedNo.set(s.admissionNo ?? '');
+        this.kind.set(s.isNewAdmission ? 'new' : 'existing');
         this.optedIn.set(s.optionalHeadIds ?? []);
       });
     });
@@ -105,6 +134,12 @@ export class StudentForm {
     }
   }
 
+  protected setKind(k: 'new' | 'existing'): void {
+    this.kind.set(k);
+    // A new admission joins today; an existing student usually joined earlier — leave the date to them.
+    if (k === 'new' && !this.isEdit()) this.form.patchValue({ joinedOn: isoDate() });
+  }
+
   protected toggleOptional(id: string): void {
     this.optedIn.update((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
   }
@@ -115,7 +150,12 @@ export class StudentForm {
     if (this.form.invalid) return;
     this.busy.set(true);
     const available = new Set(this.availableOptional().map((h) => h.id));
-    const value = { ...this.form.getRawValue(), optionalHeadIds: this.optedIn().filter((id) => available.has(id)) };
+    const value = {
+      ...this.form.getRawValue(),
+      optionalHeadIds: this.optedIn().filter((id) => available.has(id)),
+      isNewAdmission: this.isNew(),
+      waiveAdmissionFee: this.isNew() && this.admissionFee() > 0 && !this.chargeAdmissionFee(),
+    };
     const id = this.id();
     const call$ = id ? this.students.update(id, value) : this.students.create(value);
     call$.subscribe({
@@ -126,15 +166,20 @@ export class StudentForm {
           this.toast.show(s.admissionNo ? `${s.name} added · ${s.admissionNo}` : `${s.name} added`);
           this.submitted.set(false);
           // Keep batch and date: the next student is usually from the same batch.
-          this.form.reset({ ...this.form.getRawValue(), name: '', parentName: '', parentPhone: '' });
+          this.form.reset({ ...this.form.getRawValue(), name: '', parentName: '', parentPhone: '', admissionNo: '' });
           this.optedIn.set([]);
+          this.chargeAdmissionFee.set(true);
+          this.centre.admissionNumbering().subscribe({ next: (n) => this.nextNo.set(n.example), error: () => undefined });
           document.getElementById('s-name')?.focus();
         } else {
           if (id) {
             this.toast.show('Changes saved');
             this.router.navigateByUrl(`/students/${id}`);
-          } else {
+          } else if (s.isNewAdmission !== false) {
             this.router.navigate(['/students', s.id, 'admission'], { queryParams: { new: 1, sent: s.admissionMessageSent ? 1 : 0 } });
+          } else {
+            this.toast.show(s.admissionNo ? `${s.name} added · ${s.admissionNo}` : `${s.name} added`);
+            this.router.navigateByUrl('/students');
           }
         }
       },

@@ -137,7 +137,7 @@ export class MockDb {
         const gross = head.amounts[st.batchId] ?? 0;
         if (!gross) continue;
         if (head.optional && !st.optionalHeadIds.includes(head.id)) continue;
-        if (!isDueIn(head.frequency, month, start, joined)) continue;
+        if (!isDueIn(head.frequency, month, start, joined, st.isNewAdmission === true)) continue;
         const { period, label } = periodFor(head.frequency, month, start);
         if (s.dues.some((d) => d.studentId === st.id && d.feeHeadId === head.id && d.period === period)) continue;
         const discount = discountFor(st.concessions ?? [], head.id, gross);

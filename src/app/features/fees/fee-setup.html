@@ -10,7 +10,7 @@
     <div class="note warn"><span>Add a {{ labels.l().groupLower }} first. <a routerLink="/batches">{{ labels.l().addGroup }}</a></span></div>
   }
 
-  @for (h of heads(); track h.key; let i = $index) {
+  @for (h of regularHeads(); track h.key; let i = $index) {
     <section class="card head-card" [attr.aria-label]="h.name || 'New fee'">
       <div class="head-top">
         <div class="field" style="flex: 1">
@@ -18,7 +18,7 @@
           <input [id]="'hn-' + h.key" class="input head-name" placeholder="Fee name, e.g. Lab fee"
                  [ngModel]="h.name" (ngModelChange)="updateHead(h.key, { name: $event })">
         </div>
-        @if (heads().length > 1) {
+        @if (regularHeads().length > 1) {
           <button type="button" class="icon-btn plain" [attr.aria-label]="'Remove ' + (h.name || 'fee')" (click)="removeHead(h)">
             <app-icon name="trash" [size]="18" />
           </button>
@@ -46,46 +46,29 @@
         <span class="muted small-note">Only students you tick on their profile pay this (like transport).</span>
       }
 
-      @if (groups().length > 1) {
-        <button type="button" class="switch-row compact-switch" role="switch" [attr.aria-checked]="h.sameForAll"
-                (click)="updateHead(h.key, { sameForAll: !h.sameForAll })">
-          Same amount for all {{ labels.l().groupsLower }}
-          <span class="switch" [class.on]="h.sameForAll"></span>
-        </button>
-      }
-
-      <div class="amounts">
-        @if (h.sameForAll && groups().length > 1) {
-          <div class="fee-row">
-            <label [for]="'ha-' + h.key">All {{ labels.l().groupsLower }}</label>
-            <div class="amount">
-              <span>₹</span>
-              <input [id]="'ha-' + h.key" type="text" inputmode="numeric" placeholder="0"
-                     [ngModel]="h.amount" (ngModelChange)="setAmount(h, null, $event)">
-            </div>
-          </div>
-        } @else {
-          @for (g of groups(); track g.key) {
-            <div class="fee-row">
-              <label [for]="'ha-' + h.key + '-' + g.key">{{ g.label }}</label>
-              <div class="amount">
-                <span>₹</span>
-                <input [id]="'ha-' + h.key + '-' + g.key" type="text" inputmode="numeric" placeholder="0"
-                       [ngModel]="h.amounts[g.key]" (ngModelChange)="setAmount(h, g.key, $event)">
-              </div>
-            </div>
-          }
-        }
-      </div>
-      @if (groups().length > 1 && !h.sameForAll) {
-        <span class="muted small-note">Leave a {{ labels.l().groupLower }} empty if it doesn't pay this fee.</span>
-      }
+      <ng-container *ngTemplateOutlet="amountsTpl; context: { $implicit: h }" />
     </section>
   }
 
   <button type="button" class="btn btn-dashed block" (click)="addHead()">
     <app-icon name="plus" [size]="18" [stroke]="2" /> Add another fee
   </button>
+
+  <section class="card head-card" aria-labelledby="adm-fee-title">
+    <div class="adm-head">
+      <span class="adm-title">
+        <strong id="adm-fee-title">Admission fee</strong>
+        <span class="muted small-note">Charged once, only to new admissions. Existing students never pay it, and you can waive it for a student.</span>
+      </span>
+      <div class="seg compact" role="radiogroup" aria-label="Charge an admission fee">
+        <button type="button" role="radio" [class.on]="!!admissionDraft()" [attr.aria-checked]="!!admissionDraft()" (click)="setAdmissionFee(true)">Yes</button>
+        <button type="button" role="radio" [class.on]="!admissionDraft()" [attr.aria-checked]="!admissionDraft()" (click)="setAdmissionFee(false)">No</button>
+      </div>
+    </div>
+    @if (admissionDraft(); as h) {
+      <ng-container *ngTemplateOutlet="amountsTpl; context: { $implicit: h }" />
+    }
+  </section>
 
   <div class="card card--list">
     <div class="due-row">
@@ -128,3 +111,40 @@
     {{ busy() ? 'Saving…' : 'Save and turn on reminders' }}
   </button>
 </div>
+
+<ng-template #amountsTpl let-h>
+      @if (groups().length > 1) {
+        <button type="button" class="switch-row compact-switch" role="switch" [attr.aria-checked]="h.sameForAll"
+                (click)="updateHead(h.key, { sameForAll: !h.sameForAll })">
+          Same amount for all {{ labels.l().groupsLower }}
+          <span class="switch" [class.on]="h.sameForAll"></span>
+        </button>
+      }
+
+      <div class="amounts">
+        @if (h.sameForAll && groups().length > 1) {
+          <div class="fee-row">
+            <label [for]="'ha-' + h.key">All {{ labels.l().groupsLower }}</label>
+            <div class="amount">
+              <span>₹</span>
+              <input [id]="'ha-' + h.key" type="text" inputmode="numeric" placeholder="0"
+                     [ngModel]="h.amount" (ngModelChange)="setAmount(h, null, $event)">
+            </div>
+          </div>
+        } @else {
+          @for (g of groups(); track g.key) {
+            <div class="fee-row">
+              <label [for]="'ha-' + h.key + '-' + g.key">{{ g.label }}</label>
+              <div class="amount">
+                <span>₹</span>
+                <input [id]="'ha-' + h.key + '-' + g.key" type="text" inputmode="numeric" placeholder="0"
+                       [ngModel]="h.amounts[g.key]" (ngModelChange)="setAmount(h, g.key, $event)">
+              </div>
+            </div>
+          }
+        }
+      </div>
+      @if (groups().length > 1 && !h.sameForAll) {
+        <span class="muted small-note">Leave a {{ labels.l().groupLower }} empty if it doesn't pay this fee.</span>
+      }
+</ng-template>

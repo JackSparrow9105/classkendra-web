@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -32,13 +33,15 @@ interface HeadDraft {
   sameForAll: boolean;
   amount: string;
   amounts: Record<string, string>;
+  /** The admission fee (one-time, new admissions only), shown in its own card. */
+  admission: boolean;
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 @Component({
   selector: 'app-fee-setup',
-  imports: [FormsModule, RouterLink, Icon],
+  imports: [FormsModule, RouterLink, Icon, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './fee-setup.html',
   styleUrl: './fees.scss',
@@ -65,6 +68,9 @@ export class FeeSetup {
   protected readonly settings = signal<FeeSettings>({
     dueDay: 5, sessionStartMonth: 4, remindBefore: true, remindOnDue: true, remindAfter: true,
   });
+  /** Regular fees (cards with name/frequency) and the admission fee (Yes/No card). */
+  protected readonly regularHeads = computed(() => this.heads().filter((h) => !h.admission));
+  protected readonly admissionDraft = computed(() => this.heads().find((h) => h.admission) ?? null);
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly loaded = signal(false);
@@ -87,7 +93,7 @@ export class FeeSetup {
     const name = this.centre.centre()?.name ?? 'your ' + this.labels.l().orgLower;
     const month = monthName(monthKey());
     const firstGroup = this.groups()[0];
-    const lines = this.heads()
+    const lines = this.regularHeads()
       .filter((h) => h.name.trim() && !h.optional)
       .slice(0, 2)
       .map((h) => {
@@ -129,6 +135,17 @@ export class FeeSetup {
     this.heads.update((list) => list.filter((h) => h.key !== head.key));
   }
 
+  /** Yes = add the admission fee card (amounts per batch/class); No = remove it (unpaid admission fees are cancelled). */
+  protected setAdmissionFee(on: boolean): void {
+    const current = this.admissionDraft();
+    if (on && !current) {
+      this.heads.update((list) => [...list, { ...this.blank('Admission fee', 'OneTime', false, true), admission: true }]);
+    } else if (!on && current) {
+      if (current.id && !confirm('Stop charging an admission fee? Unpaid admission fees will be cancelled.')) return;
+      this.heads.update((list) => list.filter((h) => !h.admission));
+    }
+  }
+
   protected toggle(key: ReminderKey): void {
     this.settings.update((s) => ({ ...s, [key]: !s[key] }));
   }
@@ -144,6 +161,11 @@ export class FeeSetup {
     const charged = heads.filter((h) => Object.values(h.amounts).some((a) => a > 0));
     if (this.heads().some((h) => !h.name.trim())) {
       this.error.set('Give every fee a name, or remove the empty one.');
+      return;
+    }
+    const adm = this.admissionDraft();
+    if (adm && !Object.values(this.fromDraft(adm).amounts).some((a) => a > 0)) {
+      this.error.set('Enter the admission fee amount, or choose No.');
       return;
     }
     if (charged.length === 0) {
@@ -174,7 +196,7 @@ export class FeeSetup {
   }
 
   private blank(name: string, frequency: FeeFrequency, optional: boolean, sameForAll: boolean): HeadDraft {
-    return { key: `k${this.keySeq++}`, id: '', name, frequency, optional, sameForAll, amount: '', amounts: {} };
+    return { key: `k${this.keySeq++}`, id: '', name, frequency, optional, sameForAll, amount: '', amounts: {}, admission: false };
   }
 
   private toDraft(h: FeeHead): HeadDraft {
@@ -194,6 +216,7 @@ export class FeeSetup {
       sameForAll: same && this.groups().length > 1,
       amount: same ? String(values[0]) : '',
       amounts,
+      admission: !!h.admissionFee,
     };
   }
 
@@ -203,6 +226,8 @@ export class FeeSetup {
       const n = Number(h.sameForAll ? h.amount : h.amounts[g.key]) || 0;
       if (n > 0) g.batchIds.forEach((id) => (amounts[id] = n));
     }
-    return { id: h.id, name: h.name.trim(), frequency: h.frequency, optional: h.optional, amounts };
+    return h.admission
+      ? { id: h.id, name: h.name.trim() || 'Admission fee', frequency: 'OneTime', optional: false, amounts, admissionFee: true }
+      : { id: h.id, name: h.name.trim(), frequency: h.frequency, optional: h.optional, amounts };
   }
 }

@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MockDb } from '../mock/mock-db';
-import { Centre, Lang, AbsentAlertMode } from '../models/models';
+import { Centre, Lang, AbsentAlertMode, AdmissionNoStyle, AdmissionNumbering } from '../models/models';
 import { daysBetween, isoDate } from '../../shared/format';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
@@ -78,6 +78,32 @@ export class CentreService {
       ? (this.mock.update((s) => s.centre && Object.assign(s.centre, body)), this.mock.respond(this.mock.snapshot.centre!))
       : this.api.put<Centre>('centre/message-settings', body);
     return call$.pipe(tap((c) => this.centre.set(c)));
+  }
+
+  /** GET /centre/admission-numbering — how admission numbers look and the next one. */
+  admissionNumbering(): Observable<AdmissionNumbering> {
+    if (!environment.useMock) return this.api.get<AdmissionNumbering>('centre/admission-numbering');
+    return this.mock.respond(this.demoNumbering());
+  }
+
+  /** PUT /centre/admission-numbering { style, nextNumber? } — e.g. Serial from 1251 to continue the school register. */
+  setAdmissionNumbering(style: AdmissionNoStyle, nextNumber?: number): Observable<AdmissionNumbering> {
+    if (!environment.useMock) return this.api.put<AdmissionNumbering>('centre/admission-numbering', { style, nextNumber });
+    if (nextNumber !== undefined && (nextNumber < 1 || nextNumber > 9_999_999)) return this.mock.fail('Enter a number between 1 and 9999999.');
+    this.mock.update((s) => s.centre && Object.assign(s.centre, { admissionNoStyle: style, ...(nextNumber ? { admissionNextNumber: nextNumber } : {}) }));
+    return this.mock.respond(this.demoNumbering());
+  }
+
+  private demoNumbering(): AdmissionNumbering {
+    const c = this.mock.snapshot.centre;
+    const style = c?.admissionNoStyle ?? 'Session';
+    const year = new Date().getFullYear();
+    const nums = this.mock.snapshot.students.map((x) => x.admissionNo ?? '');
+    const next =
+      style === 'Serial'
+        ? Math.max(c?.admissionNextNumber ?? 1, Math.max(0, ...nums.filter((n) => /^\d+$/.test(n)).map(Number)) + 1)
+        : Math.max(c?.admissionNextNumber ?? 41, Math.max(0, ...nums.filter((n) => n.startsWith(`A-${year}-`)).map((n) => Number(n.slice(7)) || 0)) + 1);
+    return { style, nextNumber: next, example: style === 'Serial' ? String(next) : `A-${year}-${String(next).padStart(4, '0')}` };
   }
 
   /** POST /centre/logo (multipart "file") — becomes the logo on new receipts. */

@@ -190,3 +190,18 @@ textarea.input {
     white-space: nowrap;
   }
 }
+
+.adm-next {
+  width: 120px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.adm-save {
+  margin: 4px 0 12px;
+}
+
+.adm-example {
+  display: block;
+  padding: 2px 0 14px;
+}
